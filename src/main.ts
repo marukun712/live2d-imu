@@ -1,60 +1,46 @@
-import './style.css'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.ts'
+import { initializeCanvas, type Layer, readPsd } from "ag-psd";
+import * as PIXI from "pixi.js";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src=${viteLogo} class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+function getLayers(children: Layer[]): Layer[] {
+	return children.flatMap((layer) =>
+		layer.children ? getLayers(layer.children) : [layer],
+	);
+}
 
-<div class="ticks"></div>
+function layerToJson(layer: Layer): object {
+	return {
+		name: layer.name,
+		...(layer.children && { children: layer.children.map(layerToJson) }),
+	};
+}
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src=${viteLogo} alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+(async () => {
+	initializeCanvas((width, height) => {
+		const canvas = document.createElement("canvas");
+		canvas.width = width;
+		canvas.height = height;
+		return canvas;
+	});
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
+	const view = document.createElement("canvas");
+	document.body.appendChild(view);
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+	const app = new PIXI.Application({
+		view,
+		resizeTo: window,
+		backgroundAlpha: 0,
+	});
+
+	const buf = await (await fetch("/models/character.psd")).arrayBuffer();
+	const psd = readPsd(buf);
+	console.log(psd.children?.map(layerToJson));
+
+	getLayers(psd.children ?? []).forEach((layer) => {
+		if (!layer.canvas) return;
+		const sprite = new PIXI.Sprite(PIXI.Texture.from(layer.canvas));
+		sprite.x = layer.left ?? 0;
+		sprite.y = layer.top ?? 0;
+		sprite.scale.set(0.15, 0.15);
+		app.stage.addChild(sprite);
+	});
+})();
