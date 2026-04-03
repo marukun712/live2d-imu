@@ -1,12 +1,8 @@
+import { getProject, onChange } from "@theatre/core";
 import { initializeCanvas, type Layer, readPsd } from "ag-psd";
+import gsap from "gsap";
 import * as PIXI from "pixi.js";
-
-function getLayers(children: Layer[]): Layer[] {
-	return children.flatMap((layer) => {
-		if (layer.hidden) return [];
-		return layer.children ? getLayers(layer.children) : [layer];
-	});
-}
+import { Container2d, Sprite2d } from "pixi-projection";
 
 const LAYER_MAP = {
 	head: "顔",
@@ -16,11 +12,17 @@ const LAYER_MAP = {
 	arm: "腕",
 	hairBack: "後ろ髪",
 	collar: "襟裏",
-} satisfies Record<string, string>;
+} as const;
 
 const PSDNAME_TO_KEY = Object.fromEntries(
 	Object.entries(LAYER_MAP).map(([k, v]) => [v, k]),
 ) as Record<string, keyof typeof LAYER_MAP>;
+
+function getLayers(children: Layer[]): Layer[] {
+	return children.flatMap((l) =>
+		l.hidden ? [] : l.children ? getLayers(l.children) : [l],
+	);
+}
 
 (async () => {
 	initializeCanvas((width, height) => {
@@ -32,42 +34,39 @@ const PSDNAME_TO_KEY = Object.fromEntries(
 
 	const view = document.createElement("canvas");
 	document.body.appendChild(view);
+
 	const app = new PIXI.Application({
 		view,
 		resizeTo: window,
 		backgroundColor: 0xffffff,
 	});
 
-	const psd = readPsd(
-		await (await fetch("/models/character.psd")).arrayBuffer(),
-	);
-	const filtered = psd.children?.filter((c) => !c.hidden) ?? [];
+	const res = await fetch("/models/character.psd");
+	const psd = readPsd(await res.arrayBuffer());
 
-	const root = new PIXI.Container();
+	const root = new Container2d();
 	root.scale.set(0.15);
 	app.stage.addChild(root);
 
-	const g = {} as Record<keyof typeof LAYER_MAP, PIXI.Container>;
+	const containers = {} as Record<keyof typeof LAYER_MAP, Container2d>;
 
-	for (const top of filtered) {
+	for (const top of psd.children?.filter((c) => !c.hidden) ?? []) {
 		const key = PSDNAME_TO_KEY[top.name as string];
-		const c = new PIXI.Container();
-		if (key) {
-			g[key] = c;
-		} else {
-			continue;
-		}
+		if (!key) continue;
+
+		const c = new Container2d();
 		root.addChild(c);
-		let lastSprite: PIXI.Sprite | null = null;
+		containers[key] = c;
+
+		let lastSprite: Sprite2d | null = null;
 		for (const layer of getLayers([top])) {
-			if (!layer.canvas || layer.hidden) continue;
-			if (!layer.left && !layer.top && !layer.right && !layer.bottom) continue;
-			const sprite = new PIXI.Sprite(PIXI.Texture.from(layer.canvas));
+			if (!layer.canvas) continue;
+			const sprite = new Sprite2d(PIXI.Texture.from(layer.canvas));
 			sprite.x = layer.left ?? 0;
 			sprite.y = layer.top ?? 0;
 			sprite.alpha = layer.opacity ?? 1;
 			if (layer.clipping && lastSprite) {
-				const mask = new PIXI.Sprite(lastSprite.texture);
+				const mask = new Sprite2d(lastSprite.texture);
 				mask.x = lastSprite.x;
 				mask.y = lastSprite.y;
 				c.addChild(mask);
@@ -77,4 +76,43 @@ const PSDNAME_TO_KEY = Object.fromEntries(
 			lastSprite = sprite;
 		}
 	}
+
+	const sheet = getProject("Character").sheet("Idle");
+	const params = sheet.object("motion", {
+		headCoeff: 0.6,
+		armCoeff: 0.8,
+		swayScale: 0.014,
+	});
+
+	let p = { headCoeff: 0.6, armCoeff: 0.8, swayScale: 0.014 };
+	onChange(params.props, (v) => {
+		p = v;
+	});
+
+	const v = { breath: 0, sway: 0 };
+
+	gsap.to(v, {
+		breath: 50,
+		duration: 1,
+		repeat: -1,
+		yoyo: true,
+		ease: "sine.inOut",
+		onUpdate() {
+			for (const key of ["head", "ear", "hat", "collar"] as const)
+				containers[key].y = v.breath * p.headCoeff;
+			containers.body.y = v.breath;
+			containers.arm.y = v.breath * p.armCoeff;
+		},
+	});
+
+	gsap.to(v, {
+		sway: 2,
+		duration: 1.5,
+		repeat: -1,
+		yoyo: true,
+		ease: "sine.inOut",
+		onUpdate() {
+			containers.hairBack.skew.x = v.sway * p.swayScale;
+		},
+	});
 })();

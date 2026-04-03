@@ -14,8 +14,11 @@
 		"vite": "^8.0.1"
 	},
 	"dependencies": {
+		"@theatre/core": "^0.7.2",
+		"@webtoon/psd": "^0.4.0",
 		"ag-psd": "^30.1.0",
 		"gsap": "^3.14.2",
+		"pixi-projection": "^1.0.0",
 		"pixi.js": "7.4.3"
 	}
 }
