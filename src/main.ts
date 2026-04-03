@@ -105,6 +105,12 @@ const SKIP = new Set([
 		return c;
 	}
 
+	function applyX(groups: Container2d[], value: number) {
+		groups.forEach((g) => {
+			g.x = value;
+		});
+	}
+
 	function applyY(groups: Container2d[], value: number) {
 		groups.forEach((g) => {
 			g.y = value;
@@ -120,16 +126,28 @@ const SKIP = new Set([
 	const v = { breath: 0, sway: 0 };
 
 	gsap.to(v, {
-		breath: 50,
+		breath: 20,
 		duration: 1.5,
 		repeat: -1,
 		yoyo: true,
 		ease: "sine.inOut",
 		onUpdate() {
-			applyY(containers.chest, v.breath * 0.7);
-			applyY(containers.skirt, v.breath * 0.7);
-			applyY(containers.armL, v.breath * 0.7);
-			applyY(containers.armR, v.breath * 0.7);
+			applyY(containers.chest, v.breath);
+			applyY(containers.skirt, v.breath);
+		},
+	});
+
+	gsap.to(v, {
+		breath: 50,
+		duration: 2.5,
+		repeat: -1,
+		yoyo: true,
+		ease: "sine.inOut",
+		onUpdate() {
+			applyX(containers.armL, v.breath);
+			applyX(containers.armR, -v.breath);
+			applyY(containers.armL, v.breath);
+			applyY(containers.armR, v.breath);
 		},
 	});
 
@@ -140,8 +158,8 @@ const SKIP = new Set([
 		yoyo: true,
 		ease: "sine.inOut",
 		onUpdate() {
-			applySkewX(containers.hairFront, v.sway * 0.01);
-			applySkewX(containers.hairBack, v.sway * 0.01);
+			applySkewX(containers.hairFront, v.sway * 0.015);
+			applySkewX(containers.hairBack, v.sway * 0.015);
 		},
 	});
 })();
