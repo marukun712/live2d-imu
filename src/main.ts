@@ -45,10 +45,15 @@ function getLayers(children: Layer[]): Layer[] {
 	const psd = readPsd(await res.arrayBuffer());
 
 	const root = new Container2d();
-	root.scale.set(0.15);
+	root.scale.set(0.12);
+	root.pivot.set(psd.width / 2, psd.height / 2);
+	root.x = app.screen.width / 2;
+	root.y = app.screen.height / 2;
 	app.stage.addChild(root);
 
 	const containers = {} as Record<keyof typeof LAYER_MAP, Container2d>;
+
+	console.log(psd.children);
 
 	for (const top of psd.children?.filter((c) => !c.hidden) ?? []) {
 		const key = PSDNAME_TO_KEY[top.name as string];
@@ -80,8 +85,8 @@ function getLayers(children: Layer[]): Layer[] {
 	const sheet = getProject("Character").sheet("Idle");
 	const params = sheet.object("motion", {
 		headCoeff: 0.6,
-		armCoeff: 0.8,
-		swayScale: 0.014,
+		armCoeff: 1.5,
+		swayScale: 0.01,
 	});
 
 	let p = { headCoeff: 0.6, armCoeff: 0.8, swayScale: 0.014 };
