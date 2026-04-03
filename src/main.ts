@@ -1,4 +1,3 @@
-import { getProject, onChange } from "@theatre/core";
 import { initializeCanvas, type Layer, readPsd } from "ag-psd";
 import gsap from "gsap";
 import * as PIXI from "pixi.js";
@@ -7,18 +6,21 @@ import { Container2d, Sprite2d } from "pixi-projection";
 const LAYER_MAP = {
 	hairBack: "後ろ髪",
 	collar: "襟裏",
-	armR: "腕/腕R",
-	armL: "腕/腕L",
-	legs: "体/脚/脚",
-	skirt: "体/スカート[0]",
-	skirtBelt: "体/スカート[1]",
-	chest: "体/胸",
-	hairFront: "顔/前髪",
-	hairSide: "顔/前髪サイド",
-	head: "顔/顔",
+	armR: "腕R",
+	armL: "腕L",
+	legs: "脚",
+	skirt: "スカート",
+	chest: "胸",
+	hairFront: "前髪",
+	hairSide: "前髪サイド",
+	head: "顔",
 	ear: "耳",
 	hat: "帽子",
 } as const;
+
+const NAME_TO_KEY = Object.fromEntries(
+	Object.entries(LAYER_MAP).map(([k, v]) => [v, k]),
+) as Record<string, keyof typeof LAYER_MAP>;
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
@@ -28,33 +30,6 @@ const SKIP = new Set([
 	"表情見本",
 	"透かし見本",
 ]);
-
-function getLayers(children: Layer[]): Layer[] {
-	return children.flatMap((l) =>
-		l.hidden ? [] : l.children ? getLayers(l.children) : [l],
-	);
-}
-
-function findChild(children: Layer[], segment: string): Layer | undefined {
-	const match = segment.match(/^(.+)\[(\d+)\]$/);
-	if (match) {
-		const [, name, idx] = match;
-		return children.filter((l) => l.name === name && !l.hidden)[Number(idx)];
-	}
-	return children.find((l) => l.name === segment && !l.hidden);
-}
-
-function resolveLayerByPath(
-	children: Layer[],
-	path: string,
-): Layer | undefined {
-	const [head, ...rest] = path.split("/");
-	const found = findChild(children, head);
-	if (!found) return undefined;
-	return rest.length === 0
-		? found
-		: resolveLayerByPath(found.children ?? [], rest.join("/"));
-}
 
 (async () => {
 	initializeCanvas((width, height) => {
@@ -83,83 +58,78 @@ function resolveLayerByPath(
 	root.y = app.screen.height / 2;
 	app.stage.addChild(root);
 
-	const resolvedToKey = new Map<Layer, keyof typeof LAYER_MAP>();
-	for (const [key, path] of Object.entries(LAYER_MAP) as [
-		keyof typeof LAYER_MAP,
-		string,
-	][]) {
-		const layer = resolveLayerByPath(psd.children ?? [], path);
-		if (layer) resolvedToKey.set(layer, key);
-	}
+	const containers = {} as Record<keyof typeof LAYER_MAP, Container2d[]>;
+	Object.keys(LAYER_MAP).forEach((k) => {
+		containers[k as keyof typeof LAYER_MAP] = [];
+	});
 
-	const containers = {} as Record<keyof typeof LAYER_MAP, Container2d>;
+	psd.children?.forEach((l) => {
+		const name = l.name;
+		if (!name || SKIP.has(name) || l.hidden) return;
+		const c = buildContainer(l);
+		const key = NAME_TO_KEY[name.trim()];
+		if (key) containers[key].push(c);
+		root.addChild(c);
+	});
 
-	function walkPsd(children: Layer[]) {
-		for (const layer of children) {
-			if (layer.hidden) continue;
-			if (SKIP.has(layer.name ?? "")) continue;
+	function buildContainer(
+		layer: Layer,
+		state = { lastSprite: null as Sprite2d | null },
+	): Container2d {
+		const c = new Container2d();
+		layer.children?.forEach((l) => {
+			if (!l.name || l.hidden) return;
 
-			const key = resolvedToKey.get(layer);
-			if (key) {
-				const c = new Container2d();
-				root.addChild(c);
-				containers[key] = c;
-				let lastSprite: Sprite2d | null = null;
-				for (const l of getLayers([layer])) {
-					if (!l.canvas) continue;
-					const sprite = new Sprite2d(PIXI.Texture.from(l.canvas));
-					sprite.x = l.left ?? 0;
-					sprite.y = l.top ?? 0;
-					sprite.alpha = l.opacity ?? 1;
-					if (l.clipping && lastSprite) {
-						const mask = new Sprite2d(lastSprite.texture);
-						mask.x = lastSprite.x;
-						mask.y = lastSprite.y;
-						c.addChild(mask);
-						sprite.mask = mask;
-					}
-					c.addChild(sprite);
-					lastSprite = sprite;
+			const key = NAME_TO_KEY[l.name.trim()];
+
+			if (l.children) {
+				const child = buildContainer(l, state);
+				if (key) containers[key].push(child);
+				c.addChild(child);
+			} else {
+				if (!l.canvas) return;
+				const sprite = new Sprite2d(PIXI.Texture.from(l.canvas));
+				sprite.x = l.left ?? 0;
+				sprite.y = l.top ?? 0;
+				if (l.clipping && state.lastSprite) {
+					const mask = new Sprite2d(state.lastSprite.texture);
+					mask.x = state.lastSprite.x;
+					mask.y = state.lastSprite.y;
+					c.addChild(mask);
+					sprite.mask = mask;
 				}
-			} else if (layer.children) {
-				walkPsd(layer.children);
-			} else if (layer.canvas) {
-				const sprite = new Sprite2d(PIXI.Texture.from(layer.canvas));
-				sprite.x = layer.left ?? 0;
-				sprite.y = layer.top ?? 0;
-				sprite.alpha = layer.opacity ?? 1;
-				root.addChild(sprite);
+				c.addChild(sprite);
+				state.lastSprite = sprite;
 			}
-		}
+		});
+		return c;
 	}
 
-	walkPsd(psd.children ?? []);
+	function applyY(groups: Container2d[], value: number) {
+		groups.forEach((g) => {
+			g.y = value;
+		});
+	}
 
-	const sheet = getProject("Character").sheet("Idle");
-	const params = sheet.object("motion", {
-		headCoeff: 0.5,
-		armCoeff: 0.5,
-	});
-
-	let p = { headCoeff: 0.5, armCoeff: 0.5 };
-	onChange(params.props, (v) => {
-		p = v;
-	});
+	function applySkewX(groups: Container2d[], value: number) {
+		groups.forEach((g) => {
+			g.skew.x = value;
+		});
+	}
 
 	const v = { breath: 0, sway: 0 };
 
 	gsap.to(v, {
 		breath: 50,
-		duration: 1,
+		duration: 1.5,
 		repeat: -1,
 		yoyo: true,
 		ease: "sine.inOut",
 		onUpdate() {
-			containers.chest.y = v.breath;
-			containers.skirt.y = v.breath;
-			containers.skirtBelt.y = v.breath;
-			containers.armL.y = v.breath * p.armCoeff;
-			containers.armR.y = v.breath * p.armCoeff;
+			applyY(containers.chest, v.breath * 0.7);
+			applyY(containers.skirt, v.breath * 0.7);
+			applyY(containers.armL, v.breath * 0.7);
+			applyY(containers.armR, v.breath * 0.7);
 		},
 	});
 
@@ -170,8 +140,8 @@ function resolveLayerByPath(
 		yoyo: true,
 		ease: "sine.inOut",
 		onUpdate() {
-			containers.hairFront.skew.x = v.sway * 0.05;
-			containers.hairBack.skew.x = v.sway * 0.01;
+			applySkewX(containers.hairFront, v.sway * 0.01);
+			applySkewX(containers.hairBack, v.sway * 0.01);
 		},
 	});
 })();
