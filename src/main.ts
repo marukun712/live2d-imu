@@ -32,7 +32,7 @@ const SKIP = new Set([
 	"透かし見本",
 ]);
 
-const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
+const RIG_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	head: { depth: 0.5 },
 	eyeR: { depth: 0.1 },
 	eyeL: { depth: 0.1 },
@@ -76,10 +76,10 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	root.y = app.screen.height / 2;
 	app.stage.addChild(root);
 
-	const rig = buildRig(app, containers, DEPTH_MAP, 200, 20);
+	const rig = buildRig(app, containers, RIG_MAP, 200, 20);
 
 	const pane = new Pane();
-	for (const key of Object.keys(DEPTH_MAP) as (keyof typeof DEPTH_MAP)[]) {
+	for (const key of Object.keys(RIG_MAP) as (keyof typeof RIG_MAP)[]) {
 		const offset = { x: 0, y: 0, rotation: 0 };
 		const folder = pane.addFolder({ title: key, expanded: false });
 		folder.addBinding(offset, "x", { min: -100, max: 100 });

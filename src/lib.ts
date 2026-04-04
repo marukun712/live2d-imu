@@ -91,7 +91,14 @@ export function buildContainers<T extends LayerMap>(
 					sprite.mask = mask;
 				}
 
-				c.addChild(sprite);
+				if (key) {
+					const inner = new Container2d();
+					inner.addChild(sprite);
+					containers[key].push(inner);
+					c.addChild(inner);
+				} else {
+					c.addChild(sprite);
+				}
 				state.lastSprite = sprite;
 			}
 		});
@@ -105,6 +112,8 @@ export function buildContainers<T extends LayerMap>(
 		if (key) containers[key].push(c);
 		root.addChild(c);
 	});
+
+	console.log(containers);
 	return { root, containers };
 }
 
