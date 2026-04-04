@@ -25,6 +25,7 @@ export interface SpringOpts {
 export interface RigOpts {
 	depth: number;
 	spring?: Partial<SpringOpts>;
+	pivot?: { rx: number; ry: number };
 }
 
 export interface Offset {
@@ -67,9 +68,11 @@ export function buildContainers<T extends LayerMap>(
 		state = { lastSprite: null as Sprite2d | null },
 	) {
 		const c = new Container2d();
+
 		layer.children?.forEach((l) => {
 			if (!l.name || l.hidden) return;
 			const key = nameToKey[l.name.trim()];
+
 			if (l.children) {
 				const child = buildContainer(l, state);
 				if (key) containers[key].push(child);
@@ -79,6 +82,7 @@ export function buildContainers<T extends LayerMap>(
 				const sprite = new Sprite2d(PIXI.Texture.from(l.canvas));
 				sprite.x = l.left ?? 0;
 				sprite.y = l.top ?? 0;
+
 				if (l.clipping && state.lastSprite) {
 					const mask = new Sprite2d(state.lastSprite.texture);
 					mask.x = state.lastSprite.x;
@@ -86,6 +90,7 @@ export function buildContainers<T extends LayerMap>(
 					c.addChild(mask);
 					sprite.mask = mask;
 				}
+
 				c.addChild(sprite);
 				state.lastSprite = sprite;
 			}
@@ -100,7 +105,6 @@ export function buildContainers<T extends LayerMap>(
 		if (key) containers[key].push(c);
 		root.addChild(c);
 	});
-
 	return { root, containers };
 }
 
@@ -111,6 +115,23 @@ export class KokoroRig {
 	private readonly offsets = new Map<string, Offset>();
 	readonly current = { x: 0, y: 0 };
 	private forcus = { x: 0, y: 0, prevX: 0 };
+
+	private static readonly DEFAULT_PIVOTS: Partial<
+		Record<string, { rx: number; ry: number }>
+	> = {
+		head: { rx: 0.5, ry: 1.0 },
+		eyeR: { rx: 0.5, ry: 0.5 },
+		eyeL: { rx: 0.5, ry: 0.5 },
+		chest: { rx: 0.5, ry: 0.0 },
+		forearmL: { rx: 0.5, ry: 0.0 },
+		upperArmL: { rx: 0.5, ry: 0.0 },
+		forearmR: { rx: 0.5, ry: 0.0 },
+		upperArmR: { rx: 0.5, ry: 0.0 },
+		legs: { rx: 0.5, ry: 0.0 },
+		hairFront: { rx: 0.5, ry: 0.0 },
+		hairSide: { rx: 0.5, ry: 0.0 },
+		hairBack: { rx: 0.5, ry: 0.0 },
+	};
 
 	constructor(app: PIXI.Application, strength: number, range: number) {
 		this.range = range;
@@ -125,9 +146,12 @@ export class KokoroRig {
 	}
 
 	add(container: PIXI.Container, opts: RigOpts, key: string) {
-		if (opts.spring) {
-			const bounds = container.getLocalBounds();
-			container.pivot.set(bounds.x + bounds.width / 4, bounds.y);
+		const pivot = opts.pivot ?? KokoroRig.DEFAULT_PIVOTS[key];
+		if (pivot || opts.spring) {
+			const b = container.getLocalBounds();
+			const rx = pivot?.rx ?? 0;
+			const ry = pivot?.ry ?? 0;
+			container.pivot.set(b.x + b.width * rx, b.y + b.height * ry);
 		}
 		this.layers.push({ container, opts, spring: { x: 0, vx: 0 }, key });
 	}
@@ -148,23 +172,20 @@ export class KokoroRig {
 		for (const { container, opts, spring, key } of this.layers) {
 			const offset = this.offsets.get(key);
 
-			container.x =
-				Math.max(
-					-this.range,
-					Math.min(this.range, this.current.x * this.strength * opts.depth),
-				) + (offset?.x ?? 0);
-			container.y =
-				Math.max(
-					-this.range,
-					Math.min(this.range, this.current.y * this.strength * opts.depth),
-				) + (offset?.y ?? 0);
+			const px = Math.max(
+				-this.range,
+				Math.min(this.range, this.current.x * this.strength * opts.depth),
+			);
+			const py = Math.max(
+				-this.range,
+				Math.min(this.range, this.current.y * this.strength * opts.depth),
+			);
+
+			container.x = px + container.pivot.x + (offset?.x ?? 0);
+			container.y = py + container.pivot.y + (offset?.y ?? 0);
 			container.rotation = offset?.rotation ?? 0;
 
 			if (opts.spring) {
-				const bounds = container.getLocalBounds();
-				container.pivot.set(bounds.x + bounds.width / 4, bounds.y);
-				container.x += container.pivot.x;
-				container.y += container.pivot.y;
 				const s = { ...DEFAULT_SPRING, ...opts.spring };
 				spring.vx += vx * 100;
 				spring.vx += -spring.x * s.stiffness;

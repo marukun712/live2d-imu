@@ -41,6 +41,7 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	upperArmL: { depth: 0.3 },
 	forearmR: { depth: 0.3 },
 	upperArmR: { depth: 0.3 },
+	legs: { depth: 0.2 },
 	hairFront: { depth: 0.8, spring: { stiffness: 0.1 } },
 	hairSide: { depth: 0.7, spring: { stiffness: 0.1 } },
 	hairBack: { depth: 0.3, spring: { stiffness: 0.1 } },
@@ -48,7 +49,7 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	earringsL: { depth: 0.8, spring: { stiffness: 0.05 } },
 	earringsR: { depth: 0.8, spring: { stiffness: 0.05 } },
 	ribbon: { depth: 0.8, spring: { stiffness: 0.05 } },
-	hat: { depth: 0.2 },
+	hat: { depth: 0.2, pivot: { rx: 0.5, ry: 1.0 } },
 };
 
 (async () => {
@@ -61,7 +62,6 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 
 	const view = document.createElement("canvas");
 	document.body.appendChild(view);
-
 	const app = new PIXI.Application({
 		view,
 		resizeTo: window,
@@ -79,13 +79,6 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	const rig = buildRig(app, containers, DEPTH_MAP, 200, 20);
 
 	const pane = new Pane();
-
-	const focus = { x: 0, y: 0 };
-	const focusFolder = pane.addFolder({ title: "focus" });
-	focusFolder.addBinding(focus, "x", { min: -20, max: 20 });
-	focusFolder.addBinding(focus, "y", { min: -20, max: 20 });
-	focusFolder.on("change", () => rig.setForcus(focus.x, focus.y));
-
 	for (const key of Object.keys(DEPTH_MAP) as (keyof typeof DEPTH_MAP)[]) {
 		const offset = { x: 0, y: 0, rotation: 0 };
 		const folder = pane.addFolder({ title: key, expanded: false });
@@ -94,4 +87,10 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 		folder.addBinding(offset, "rotation", { min: -1, max: 1 });
 		folder.on("change", () => rig.setOffset(key, offset));
 	}
+
+	window.addEventListener("pointermove", (e: PointerEvent) => {
+		const cx = window.innerWidth / 2;
+		const cy = window.innerHeight / 2;
+		rig.setForcus((e.clientX - cx) / cx, (e.clientY - cy) / cy);
+	});
 })();
