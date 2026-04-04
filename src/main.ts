@@ -3,6 +3,47 @@ import gsap from "gsap";
 import * as PIXI from "pixi.js";
 import { Container2d, Sprite2d } from "pixi-projection";
 
+interface ParallaxLayer {
+	container: Container2d;
+	depth: number;
+}
+
+class ParallaxRig {
+	private readonly strength: number;
+	private readonly layers: ParallaxLayer[] = [];
+	private readonly mouse = { x: 0, y: 0 };
+	private readonly current = { x: 0, y: 0 };
+
+	constructor(app: PIXI.Application, strength: number) {
+		this.strength = strength;
+
+		app.stage.eventMode = "static";
+		app.stage.on("pointermove", (e: PIXI.FederatedPointerEvent) => {
+			const cx = app.screen.width / 2;
+			const cy = app.screen.height / 2;
+			this.mouse.x = (e.global.x - cx) / cx;
+			this.mouse.y = (e.global.y - cy) / cy;
+		});
+
+		app.ticker.add(() => this.tick());
+	}
+
+	add(container: Container2d, depth: number): this {
+		this.layers.push({ container, depth });
+		return this;
+	}
+
+	private tick(): void {
+		this.current.x += this.mouse.x - this.current.x;
+		this.current.y += this.mouse.y - this.current.y;
+
+		for (const { container, depth } of this.layers) {
+			container.x = this.current.x * this.strength * depth;
+			container.y = this.current.y * this.strength * depth;
+		}
+	}
+}
+
 const LAYER_MAP = {
 	hairBack: "後ろ髪",
 	collar: "襟裏",
@@ -162,4 +203,27 @@ const SKIP = new Set([
 			applySkewX(containers.hairBack, v.sway * 0.015);
 		},
 	});
+
+	const rig = new ParallaxRig(app, 200);
+
+	const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, number>> = {
+		hairBack: 0.1,
+		armR: 0.3,
+		armL: 0.3,
+		chest: 0.3,
+		ear: 0.5,
+		head: 0.5,
+		hat: 0.5,
+		hairSide: 0.7,
+		hairFront: 1.0,
+	};
+
+	for (const [key, depth] of Object.entries(DEPTH_MAP) as [
+		keyof typeof LAYER_MAP,
+		number,
+	][]) {
+		containers[key].forEach((c) => {
+			rig.add(c, depth);
+		});
+	}
 })();
