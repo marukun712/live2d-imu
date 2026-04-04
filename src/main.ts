@@ -9,12 +9,14 @@ interface ParallaxLayer {
 }
 
 class ParallaxRig {
+	private readonly range: number;
 	private readonly strength: number;
 	private readonly layers: ParallaxLayer[] = [];
 	private readonly mouse = { x: 0, y: 0 };
 	private readonly current = { x: 0, y: 0 };
 
-	constructor(app: PIXI.Application, strength: number) {
+	constructor(app: PIXI.Application, strength: number, range: number) {
+		this.range = range;
 		this.strength = strength;
 
 		window.addEventListener("pointermove", (e: PointerEvent) => {
@@ -38,12 +40,12 @@ class ParallaxRig {
 
 		for (const { container, depth } of this.layers) {
 			container.x = Math.max(
-				-50,
-				Math.min(50, this.current.x * this.strength * depth),
+				-this.range,
+				Math.min(this.range, this.current.x * this.strength * depth),
 			);
 			container.y = Math.max(
-				-50,
-				Math.min(50, this.current.y * this.strength * depth),
+				-this.range,
+				Math.min(this.range, this.current.y * this.strength * depth),
 			);
 		}
 	}
@@ -52,8 +54,7 @@ class ParallaxRig {
 const LAYER_MAP = {
 	hairBack: "後ろ髪",
 	collar: "襟裏",
-	armR: "腕R",
-	armL: "腕L",
+	arm: "腕",
 	legs: "脚",
 	skirt: "スカート",
 	chest: "胸",
@@ -62,6 +63,8 @@ const LAYER_MAP = {
 	head: "顔",
 	ear: "耳",
 	hat: "帽子",
+	eyeR: "瞳",
+	eyeL: "瞳L",
 } as const;
 
 const NAME_TO_KEY = Object.fromEntries(
@@ -172,7 +175,7 @@ const SKIP = new Set([
 	const v = { breath: 0, sway: 0 };
 
 	gsap.to(v, {
-		breath: 20,
+		breath: 40,
 		duration: 1.5,
 		repeat: -1,
 		yoyo: true,
@@ -190,10 +193,8 @@ const SKIP = new Set([
 		yoyo: true,
 		ease: "sine.inOut",
 		onUpdate() {
-			applyX(containers.armL, v.breath);
-			applyX(containers.armR, -v.breath);
-			applyY(containers.armL, v.breath);
-			applyY(containers.armR, v.breath);
+			applyX(containers.arm, v.breath);
+			applyY(containers.arm, v.breath);
 		},
 	});
 
@@ -209,13 +210,14 @@ const SKIP = new Set([
 		},
 	});
 
-	const rig = new ParallaxRig(app, 200);
+	const rig = new ParallaxRig(app, 200, 30);
 
 	const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, number>> = {
+		eyeR: 0.1,
+		eyeL: 0.1,
 		hat: 0.2,
 		hairBack: 0.3,
-		armR: 0.3,
-		armL: 0.3,
+		arm: 0.3,
 		chest: 0.3,
 		ear: 0.5,
 		head: 0.5,
