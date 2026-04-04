@@ -4,7 +4,7 @@ import * as PIXI from "pixi.js";
 import { Container2d, Sprite2d } from "pixi-projection";
 
 interface ParallaxLayer {
-	container: Container2d;
+	container: PIXI.Container;
 	depth: number;
 }
 
@@ -17,18 +17,17 @@ class ParallaxRig {
 	constructor(app: PIXI.Application, strength: number) {
 		this.strength = strength;
 
-		app.stage.eventMode = "static";
-		app.stage.on("pointermove", (e: PIXI.FederatedPointerEvent) => {
-			const cx = app.screen.width / 2;
-			const cy = app.screen.height / 2;
-			this.mouse.x = (e.global.x - cx) / cx;
-			this.mouse.y = (e.global.y - cy) / cy;
+		window.addEventListener("pointermove", (e: PointerEvent) => {
+			const cx = window.innerWidth / 2;
+			const cy = window.innerHeight / 2;
+			this.mouse.x = (e.clientX - cx) / cx;
+			this.mouse.y = (e.clientY - cy) / cy;
 		});
 
 		app.ticker.add(() => this.tick());
 	}
 
-	add(container: Container2d, depth: number): this {
+	add(container: PIXI.Container, depth: number): this {
 		this.layers.push({ container, depth });
 		return this;
 	}
@@ -38,8 +37,14 @@ class ParallaxRig {
 		this.current.y += this.mouse.y - this.current.y;
 
 		for (const { container, depth } of this.layers) {
-			container.x = this.current.x * this.strength * depth;
-			container.y = this.current.y * this.strength * depth;
+			container.x = Math.max(
+				-50,
+				Math.min(50, this.current.x * this.strength * depth),
+			);
+			container.y = Math.max(
+				-50,
+				Math.min(50, this.current.y * this.strength * depth),
+			);
 		}
 	}
 }
@@ -207,15 +212,15 @@ const SKIP = new Set([
 	const rig = new ParallaxRig(app, 200);
 
 	const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, number>> = {
-		hairBack: 0.1,
+		hat: 0.2,
+		hairBack: 0.3,
 		armR: 0.3,
 		armL: 0.3,
 		chest: 0.3,
 		ear: 0.5,
 		head: 0.5,
-		hat: 0.5,
 		hairSide: 0.7,
-		hairFront: 1.0,
+		hairFront: 0.8,
 	};
 
 	for (const [key, depth] of Object.entries(DEPTH_MAP) as [
