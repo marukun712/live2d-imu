@@ -14,13 +14,11 @@
 		"vite": "^8.0.1"
 	},
 	"dependencies": {
-		"@theatre/core": "^0.7.2",
-		"@types/matter-js": "^0.20.2",
-		"@webtoon/psd": "^0.4.0",
+		"@tweakpane/core": "^2.0.5",
 		"ag-psd": "^30.1.0",
 		"gsap": "^3.14.2",
-		"matter-js": "^0.20.0",
 		"pixi-projection": "^1.0.0",
-		"pixi.js": "7.4.3"
+		"pixi.js": "7.4.3",
+		"tweakpane": "^4.0.5"
 	}
 }

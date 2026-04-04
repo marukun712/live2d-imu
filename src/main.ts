@@ -1,26 +1,27 @@
 import { initializeCanvas, readPsd } from "ag-psd";
-import gsap from "gsap";
 import * as PIXI from "pixi.js";
-import { buildContainers, buildRig, type KokoroRig, type RigOpts } from "./lib";
+import { Pane } from "tweakpane";
+import { buildContainers, buildRig, type LayerMap, type RigOpts } from "./lib";
 
 const LAYER_MAP = {
 	head: "顔",
 	eyeR: "瞳",
 	eyeL: "瞳L",
 	chest: "胸",
-	arm: "腕",
+	forearmL: "前腕L",
+	upperArmL: "上腕L",
+	forearmR: "前腕R",
+	upperArmR: "上腕R",
 	legs: "脚",
 	hairFront: "前髪",
 	hairSide: "前髪サイド",
 	hairBack: "後ろ髪",
-	ear: "耳",
-	collar: "襟裏",
 	skirt: "スカート",
 	earringsL: "ピアスL",
 	earringsR: "ピアスR",
 	ribbon: "胸リボン",
 	hat: "帽子",
-} as const;
+} as const satisfies LayerMap;
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
@@ -36,55 +37,19 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	eyeR: { depth: 0.1 },
 	eyeL: { depth: 0.1 },
 	chest: { depth: 0.3, spring: { stiffness: 0.05 } },
-	arm: { depth: 0.3 },
-	skirt: { depth: 0.3 },
-	ear: { depth: 0.5 },
-	hat: { depth: 0.2 },
+	forearmL: { depth: 0.3 },
+	upperArmL: { depth: 0.3 },
+	forearmR: { depth: 0.3 },
+	upperArmR: { depth: 0.3 },
 	hairFront: { depth: 0.8, spring: { stiffness: 0.1 } },
 	hairSide: { depth: 0.7, spring: { stiffness: 0.1 } },
 	hairBack: { depth: 0.3, spring: { stiffness: 0.1 } },
+	skirt: { depth: 0.3 },
 	earringsL: { depth: 0.8, spring: { stiffness: 0.05 } },
 	earringsR: { depth: 0.8, spring: { stiffness: 0.05 } },
 	ribbon: { depth: 0.8, spring: { stiffness: 0.05 } },
+	hat: { depth: 0.2 },
 };
-
-export function startIdleAnimation(rig: KokoroRig) {
-	const breathe = { y: 0 };
-	const sway = { x: 0 };
-	const drift = { x: 0, y: 0 };
-
-	gsap.to(breathe, {
-		y: 1,
-		duration: 2,
-		ease: "sine.inOut",
-		yoyo: true,
-		repeat: -1,
-	});
-
-	gsap.to(sway, {
-		x: 0.6,
-		duration: 3,
-		ease: "sine.inOut",
-		yoyo: true,
-		repeat: -1,
-		delay: 1.5,
-	});
-
-	gsap
-		.timeline({ repeat: -1, delay: 3 })
-		.to(drift, { x: -1.2, y: -0.4, duration: 1.8, ease: "power2.inOut" })
-		.to(drift, { x: 0, y: 0, duration: 2.4, ease: "power1.inOut" })
-		.to({}, { duration: 2.5 })
-		.to(drift, { x: 0.8, y: 0.3, duration: 1.4, ease: "power2.inOut" })
-		.to(drift, { x: 0, y: 0, duration: 2.0, ease: "power1.inOut" })
-		.to({}, { duration: 3 });
-
-	function onTick() {
-		rig.setForcus(sway.x + drift.x, breathe.y + drift.y);
-	}
-
-	return { onTick };
-}
 
 (async () => {
 	initializeCanvas((width, height) => {
@@ -105,7 +70,6 @@ export function startIdleAnimation(rig: KokoroRig) {
 
 	const res = await fetch("/models/character.psd");
 	const psd = readPsd(await res.arrayBuffer());
-
 	const { root, containers } = buildContainers(psd, LAYER_MAP, SKIP);
 	root.scale.set(0.12);
 	root.x = app.screen.width / 2;
@@ -114,6 +78,20 @@ export function startIdleAnimation(rig: KokoroRig) {
 
 	const rig = buildRig(app, containers, DEPTH_MAP, 200, 20);
 
-	const idle = startIdleAnimation(rig);
-	app.ticker.add(idle.onTick);
+	const pane = new Pane();
+
+	const focus = { x: 0, y: 0 };
+	const focusFolder = pane.addFolder({ title: "focus" });
+	focusFolder.addBinding(focus, "x", { min: -20, max: 20 });
+	focusFolder.addBinding(focus, "y", { min: -20, max: 20 });
+	focusFolder.on("change", () => rig.setForcus(focus.x, focus.y));
+
+	for (const key of Object.keys(DEPTH_MAP) as (keyof typeof DEPTH_MAP)[]) {
+		const offset = { x: 0, y: 0, rotation: 0 };
+		const folder = pane.addFolder({ title: key, expanded: false });
+		folder.addBinding(offset, "x", { min: -100, max: 100 });
+		folder.addBinding(offset, "y", { min: -100, max: 100 });
+		folder.addBinding(offset, "rotation", { min: -1, max: 1 });
+		folder.on("change", () => rig.setOffset(key, offset));
+	}
 })();
