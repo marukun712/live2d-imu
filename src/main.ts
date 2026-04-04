@@ -1,5 +1,4 @@
 import { initializeCanvas, type Layer, readPsd } from "ag-psd";
-import gsap from "gsap";
 import * as PIXI from "pixi.js";
 import { Container2d, Sprite2d } from "pixi-projection";
 
@@ -13,7 +12,7 @@ class ParallaxRig {
 	private readonly strength: number;
 	private readonly layers: ParallaxLayer[] = [];
 	private readonly mouse = { x: 0, y: 0 };
-	private readonly current = { x: 0, y: 0 };
+	readonly current = { x: 0, y: 0 };
 
 	constructor(app: PIXI.Application, strength: number, range: number) {
 		this.range = range;
@@ -32,6 +31,13 @@ class ParallaxRig {
 	add(container: PIXI.Container, depth: number): this {
 		this.layers.push({ container, depth });
 		return this;
+	}
+
+	get displacement() {
+		return {
+			x: this.current.x * this.strength,
+			y: this.current.y * this.strength,
+		};
 	}
 
 	private tick(): void {
@@ -153,63 +159,6 @@ const SKIP = new Set([
 		});
 		return c;
 	}
-
-	function applyX(groups: Container2d[], value: number) {
-		groups.forEach((g) => {
-			g.x = value;
-		});
-	}
-
-	function applyY(groups: Container2d[], value: number) {
-		groups.forEach((g) => {
-			g.y = value;
-		});
-	}
-
-	function applySkewX(groups: Container2d[], value: number) {
-		groups.forEach((g) => {
-			g.skew.x = value;
-		});
-	}
-
-	const v = { breath: 0, sway: 0 };
-
-	gsap.to(v, {
-		breath: 40,
-		duration: 1.5,
-		repeat: -1,
-		yoyo: true,
-		ease: "sine.inOut",
-		onUpdate() {
-			applyY(containers.chest, v.breath);
-			applyY(containers.skirt, v.breath);
-		},
-	});
-
-	gsap.to(v, {
-		breath: 50,
-		duration: 2.5,
-		repeat: -1,
-		yoyo: true,
-		ease: "sine.inOut",
-		onUpdate() {
-			applyX(containers.arm, v.breath);
-			applyY(containers.arm, v.breath);
-		},
-	});
-
-	gsap.to(v, {
-		sway: 2,
-		duration: 1.5,
-		repeat: -1,
-		yoyo: true,
-		ease: "sine.inOut",
-		onUpdate() {
-			applySkewX(containers.hairFront, v.sway * 0.015);
-			applySkewX(containers.hairBack, v.sway * 0.015);
-		},
-	});
-
 	const rig = new ParallaxRig(app, 200, 30);
 
 	const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, number>> = {
@@ -219,6 +168,7 @@ const SKIP = new Set([
 		hairBack: 0.3,
 		arm: 0.3,
 		chest: 0.3,
+		skirt: 0.3,
 		ear: 0.5,
 		head: 0.5,
 		hairSide: 0.7,
