@@ -88,7 +88,7 @@ export class KokoroRig {
 	private readonly strength: number;
 	private readonly layers: ParallaxLayer[] = [];
 	readonly current = { x: 0, y: 0 };
-	private force = { x: 0, y: 0, prevX: 0 };
+	private forcus = { x: 0, y: 0, prevX: 0 };
 
 	constructor(app: PIXI.Application, strength: number, range: number) {
 		this.range = range;
@@ -96,10 +96,10 @@ export class KokoroRig {
 		app.ticker.add(() => this.tick());
 	}
 
-	setForce(x: number, y: number): void {
-		this.force.prevX = this.force.x;
-		this.force.x = x;
-		this.force.y = y;
+	setForcus(x: number, y: number): void {
+		this.forcus.prevX = this.forcus.x;
+		this.forcus.x = x;
+		this.forcus.y = y;
 	}
 
 	add(container: PIXI.Container, opts: RigOpts): this {
@@ -112,9 +112,9 @@ export class KokoroRig {
 	}
 
 	private tick(): void {
-		this.current.x += this.force.x - this.current.x;
-		this.current.y += this.force.y - this.current.y;
-		const vx = this.force.x - this.force.prevX;
+		this.current.x += this.forcus.x - this.current.x;
+		this.current.y += this.forcus.y - this.current.y;
+		const vx = this.forcus.x - this.forcus.prevX;
 
 		for (const { container, opts, spring } of this.layers) {
 			container.x = Math.max(

@@ -1,6 +1,7 @@
 import { initializeCanvas, readPsd } from "ag-psd";
+import gsap from "gsap";
 import * as PIXI from "pixi.js";
-import { buildContainers, buildRig, type RigOpts } from "./lib";
+import { buildContainers, buildRig, type KokoroRig, type RigOpts } from "./lib";
 
 const LAYER_MAP = {
 	head: "顔",
@@ -47,6 +48,44 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	ribbon: { depth: 0.8, spring: { stiffness: 0.05 } },
 };
 
+export function startIdleAnimation(rig: KokoroRig) {
+	const breathe = { y: 0 };
+	const sway = { x: 0 };
+	const drift = { x: 0, y: 0 };
+
+	gsap.to(breathe, {
+		y: 1,
+		duration: 2,
+		ease: "sine.inOut",
+		yoyo: true,
+		repeat: -1,
+	});
+
+	gsap.to(sway, {
+		x: 0.6,
+		duration: 3,
+		ease: "sine.inOut",
+		yoyo: true,
+		repeat: -1,
+		delay: 1.5,
+	});
+
+	gsap
+		.timeline({ repeat: -1, delay: 3 })
+		.to(drift, { x: -1.2, y: -0.4, duration: 1.8, ease: "power2.inOut" })
+		.to(drift, { x: 0, y: 0, duration: 2.4, ease: "power1.inOut" })
+		.to({}, { duration: 2.5 })
+		.to(drift, { x: 0.8, y: 0.3, duration: 1.4, ease: "power2.inOut" })
+		.to(drift, { x: 0, y: 0, duration: 2.0, ease: "power1.inOut" })
+		.to({}, { duration: 3 });
+
+	function onTick() {
+		rig.setForcus(sway.x + drift.x, breathe.y + drift.y);
+	}
+
+	return { onTick };
+}
+
 (async () => {
 	initializeCanvas((width, height) => {
 		const canvas = document.createElement("canvas");
@@ -75,9 +114,6 @@ const DEPTH_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 
 	const rig = buildRig(app, containers, DEPTH_MAP, 200, 20);
 
-	window.addEventListener("pointermove", (e: PointerEvent) => {
-		const cx = window.innerWidth / 2;
-		const cy = window.innerHeight / 2;
-		rig.setForce((e.clientX - cx) / cx, (e.clientY - cy) / cy);
-	});
+	const idle = startIdleAnimation(rig);
+	app.ticker.add(idle.onTick);
 })();
