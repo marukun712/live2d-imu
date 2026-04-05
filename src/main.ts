@@ -1,6 +1,7 @@
 import { initializeCanvas, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
 import { Pane } from "tweakpane";
+import { KokoroAnim } from "./anim";
 import { buildContainers, buildRig, type LayerMap, type RigOpts } from "./lib";
 
 const LAYER_MAP = {
@@ -84,6 +85,7 @@ const SKIP = new Set([
 
 	const view = document.createElement("canvas");
 	document.body.appendChild(view);
+
 	const app = new PIXI.Application({
 		view,
 		resizeTo: window,
@@ -92,6 +94,7 @@ const SKIP = new Set([
 
 	const res = await fetch("/models/character.psd");
 	const psd = readPsd(await res.arrayBuffer());
+
 	const { root, containers } = buildContainers(psd, LAYER_MAP, SKIP);
 	root.scale.set(0.12);
 	root.x = app.screen.width / 2;
@@ -99,14 +102,29 @@ const SKIP = new Set([
 	app.stage.addChild(root);
 
 	const rig = buildRig(app, containers, RIG_MAP, 200, 40);
+	const anim = new KokoroAnim(rig, {
+		eyeL: containers.eyeL,
+		eyeR: containers.eyeR,
+	}).attach(app);
+
+	const PARAM_RANGES = {
+		headX: [-30, 30],
+		headY: [-20, 20],
+		headTilt: [-0.3, 0.3],
+		eyeX: [-5, 5],
+		eyeY: [-3, 3],
+		eyeOpenL: [0, 1],
+		eyeOpenR: [0, 1],
+		bodyX: [-15, 15],
+		bodyY: [-10, 10],
+		breathe: [0, 1],
+		hairSway: [-1, 1],
+		armLAngle: [-0.5, 0.5],
+		armRAngle: [-0.5, 0.5],
+	} as const;
 
 	const pane = new Pane();
-	for (const key of Object.keys(RIG_MAP) as (keyof typeof RIG_MAP)[]) {
-		const offset = { x: 0, y: 0, rotation: 0 };
-		const folder = pane.addFolder({ title: key, expanded: false });
-		folder.addBinding(offset, "x", { min: -100, max: 100 });
-		folder.addBinding(offset, "y", { min: -100, max: 100 });
-		folder.addBinding(offset, "rotation", { min: -1, max: 1 });
-		folder.on("change", () => rig.setOffset(key, offset));
+	for (const [key, [min, max]] of Object.entries(PARAM_RANGES)) {
+		pane.addBinding(anim.params, key as keyof typeof anim.params, { min, max });
 	}
 })();

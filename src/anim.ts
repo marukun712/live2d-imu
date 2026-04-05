@@ -1,6 +1,5 @@
 import gsap from "gsap";
 import type * as PIXI from "pixi.js";
-import type { Container2d } from "pixi-projection";
 import type { KokoroRig } from "./lib";
 
 const PARAM_DEFS = {
@@ -9,8 +8,6 @@ const PARAM_DEFS = {
 	headTilt: { min: -0.3, max: 0.3, default: 0 },
 	eyeX: { min: -5, max: 5, default: 0 },
 	eyeY: { min: -3, max: 3, default: 0 },
-	eyeOpenL: { min: 0, max: 1, default: 1 },
-	eyeOpenR: { min: 0, max: 1, default: 1 },
 	bodyX: { min: -15, max: 15, default: 0 },
 	bodyY: { min: -10, max: 10, default: 0 },
 	breathe: { min: 0, max: 1, default: 0 },
@@ -24,17 +21,11 @@ export type ParamValues = { [K in ParamKey]: number };
 
 export class KokoroAnim {
 	private readonly rig: KokoroRig;
-	private readonly containers: Partial<Record<"eyeL" | "eyeR", Container2d>> =
-		{};
 	readonly params: ParamValues;
 	private tickerFn: (() => void) | null = null;
 
-	constructor(
-		rig: KokoroRig,
-		containers: Partial<Record<"eyeL" | "eyeR", Container2d>>,
-	) {
+	constructor(rig: KokoroRig) {
 		this.rig = rig;
-		this.containers = containers;
 		this.params = Object.fromEntries(
 			Object.entries(PARAM_DEFS).map(([k, v]) => [k, v.default]),
 		) as ParamValues;
@@ -53,6 +44,11 @@ export class KokoroAnim {
 	}
 
 	apply() {
+		for (const key of Object.keys(PARAM_DEFS) as ParamKey[]) {
+			const { min, max } = PARAM_DEFS[key];
+			this.params[key] = Math.max(min, Math.min(max, this.params[key]));
+		}
+
 		const p = this.params;
 
 		this.rig.setOffset("head", {
@@ -110,9 +106,6 @@ export class KokoroAnim {
 			y: p.bodyY,
 			rotation: p.armRAngle * 0.5,
 		});
-
-		if (this.containers.eyeL) this.containers.eyeL.scale.y = p.eyeOpenL;
-		if (this.containers.eyeR) this.containers.eyeR.scale.y = p.eyeOpenR;
 	}
 
 	to(params: Partial<ParamValues>, vars: gsap.TweenVars = {}) {
@@ -139,37 +132,6 @@ export const Motion = {
 			duration: 2.5,
 			ease: "sine.inOut",
 		});
-	},
-
-	blink(anim: KokoroAnim) {
-		return gsap
-			.timeline()
-			.to(anim.params, {
-				eyeOpenL: 0,
-				eyeOpenR: 0,
-				duration: 0.06,
-				ease: "none",
-			})
-			.to(anim.params, {
-				eyeOpenL: 1,
-				eyeOpenR: 1,
-				duration: 0.1,
-				ease: "none",
-			});
-	},
-
-	autoBlink(anim: KokoroAnim): () => void {
-		let cancelled = false;
-		const schedule = () => {
-			if (cancelled) return;
-			gsap.delayedCall(2 + Math.random() * 4, () => {
-				Motion.blink(anim).eventCallback("onComplete", schedule);
-			});
-		};
-		schedule();
-		return () => {
-			cancelled = true;
-		};
 	},
 
 	lookAt(anim: KokoroAnim, nx: number, ny: number, duration = 0.4) {
