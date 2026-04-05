@@ -102,10 +102,7 @@ const SKIP = new Set([
 	app.stage.addChild(root);
 
 	const rig = buildRig(app, containers, RIG_MAP, 200, 40);
-	const anim = new KokoroAnim(rig, {
-		eyeL: containers.eyeL,
-		eyeR: containers.eyeR,
-	}).attach(app);
+	const anim = new KokoroAnim(rig).attach(app);
 
 	const PARAM_RANGES = {
 		headX: [-30, 30],
