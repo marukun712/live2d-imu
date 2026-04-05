@@ -109,10 +109,4 @@ const SKIP = new Set([
 		folder.addBinding(offset, "rotation", { min: -1, max: 1 });
 		folder.on("change", () => rig.setOffset(key, offset));
 	}
-
-	window.addEventListener("pointermove", (e: PointerEvent) => {
-		const cx = window.innerWidth / 2;
-		const cy = window.innerHeight / 2;
-		rig.setFocus((e.clientX - cx) / cx, (e.clientY - cy) / cy);
-	});
 })();
