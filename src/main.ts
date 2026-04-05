@@ -62,7 +62,7 @@ const RIG_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	buckle1: { depth: 0.3 },
 	buckle2: { depth: 0.3 },
 	ribbon: { depth: 0.3 },
-	hat: { depth: 0.2, pivot: { rx: 0.5, ry: 1.0 } },
+	hat: { depth: 0.2 },
 };
 
 const SKIP = new Set([
@@ -113,6 +113,6 @@ const SKIP = new Set([
 	window.addEventListener("pointermove", (e: PointerEvent) => {
 		const cx = window.innerWidth / 2;
 		const cy = window.innerHeight / 2;
-		rig.setForcus((e.clientX - cx) / cx, (e.clientY - cy) / cy);
+		rig.setFocus((e.clientX - cx) / cx, (e.clientY - cy) / cy);
 	});
 })();
