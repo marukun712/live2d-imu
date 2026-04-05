@@ -3,19 +3,21 @@ import * as PIXI from "pixi.js";
 import { Container2d, Sprite2d } from "pixi-projection";
 
 export interface LayerMap {
-	head: string;
-	eyeR: string;
-	eyeL: string;
-	chest: string;
-	forearmL: string;
-	upperArmL: string;
-	forearmR: string;
-	upperArmR: string;
-	legs: string;
-	hairFront: string;
-	hairSide: string;
-	hairBack: string;
-	[key: string]: string;
+	head: { name: string; idx: number };
+	eyeL: { name: string; idx: number };
+	eyeR: { name: string; idx: number };
+	body: { name: string; idx: number };
+	shoulder: { name: string; idx: number };
+	chest: { name: string; idx: number };
+	forearmL: { name: string; idx: number };
+	upperArmL: { name: string; idx: number };
+	forearmR: { name: string; idx: number };
+	upperArmR: { name: string; idx: number };
+	legs: { name: string; idx: number };
+	hairFront: { name: string; idx: number };
+	hairSide: { name: string; idx: number };
+	hairBack: { name: string; idx: number };
+	[key: string]: { name: string; idx: number };
 }
 
 export interface SpringOpts {
@@ -48,14 +50,15 @@ export function buildContainers<T extends LayerMap>(
 	layerMap: T,
 	skip: Set<string> = new Set(),
 ) {
-	const nameToKey = Object.fromEntries(
-		Object.entries(layerMap).map(([k, v]) => [v, k]),
-	) as Record<string, keyof T>;
+	const findRigName = (name: string) =>
+		Object.entries(layerMap)
+			.filter(([_, v]) => v.name === name)
+			?.map(([k, _]) => k);
 
 	const root = new Container2d();
 	root.pivot.set(psd.width / 2, psd.height / 2);
 
-	const containers = Object.keys(layerMap).reduce(
+	const groups = Object.keys(layerMap).reduce(
 		(acc, k) => {
 			acc[k as keyof T] = [];
 			return acc;
@@ -71,11 +74,11 @@ export function buildContainers<T extends LayerMap>(
 
 		layer.children?.forEach((l) => {
 			if (!l.name || l.hidden) return;
-			const key = nameToKey[l.name.trim()];
+			const key = findRigName(l.name.trim())[0];
 
 			if (l.children) {
 				const child = buildContainer(l, state);
-				if (key) containers[key].push(child);
+				if (key) groups[key].push(child);
 				c.addChild(child);
 			} else {
 				if (!l.canvas) return;
@@ -94,7 +97,7 @@ export function buildContainers<T extends LayerMap>(
 				if (key) {
 					const inner = new Container2d();
 					inner.addChild(sprite);
-					containers[key].push(inner);
+					groups[key].push(inner);
 					c.addChild(inner);
 				} else {
 					c.addChild(sprite);
@@ -108,12 +111,17 @@ export function buildContainers<T extends LayerMap>(
 	psd.children?.forEach((l) => {
 		if (!l.name || skip.has(l.name) || l.hidden) return;
 		const c = buildContainer(l);
-		const key = nameToKey[l.name.trim()];
-		if (key) containers[key].push(c);
+		const key = findRigName(l.name.trim())[0];
+		if (key) groups[key].push(c);
 		root.addChild(c);
 	});
 
-	console.log(containers);
+	const containers: Partial<{ [key in keyof T]: Container2d }> = {};
+	Object.entries(layerMap).forEach(([key, { idx }]) => {
+		const list = groups[key as keyof T];
+		if (list?.[idx]) containers[key as keyof T] = list[idx];
+	});
+
 	return { root, containers };
 }
 
@@ -125,12 +133,14 @@ export class KokoroRig {
 	readonly current = { x: 0, y: 0 };
 	private forcus = { x: 0, y: 0, prevX: 0 };
 
-	private static readonly DEFAULT_PIVOTS: Partial<
-		Record<string, { rx: number; ry: number }>
-	> = {
+	private static readonly DEFAULT_PIVOTS: {
+		[key in keyof LayerMap]: { rx: number; ry: number };
+	} = {
 		head: { rx: 0.5, ry: 1.0 },
-		eyeR: { rx: 0.5, ry: 0.5 },
 		eyeL: { rx: 0.5, ry: 0.5 },
+		eyeR: { rx: 0.5, ry: 0.5 },
+		body: { rx: 0.5, ry: 0.0 },
+		shoulder: { rx: 0.5, ry: 0.0 },
 		chest: { rx: 0.5, ry: 0.0 },
 		forearmL: { rx: 0.5, ry: 0.0 },
 		upperArmL: { rx: 0.5, ry: 0.0 },
@@ -174,8 +184,8 @@ export class KokoroRig {
 	}
 
 	private tick() {
-		this.current.x += this.forcus.x - this.current.x;
-		this.current.y += this.forcus.y - this.current.y;
+		this.current.x += (this.forcus.x - this.current.x) * 0.1;
+		this.current.y += (this.forcus.y - this.current.y) * 0.1;
 		const vx = this.forcus.x - this.forcus.prevX;
 
 		for (const { container, opts, spring, key } of this.layers) {
@@ -208,16 +218,16 @@ export class KokoroRig {
 
 export function buildRig<T extends string>(
 	app: PIXI.Application,
-	containers: Record<T, Container2d[]>,
+	containers: Partial<Record<T, Container2d>>,
 	depthMap: Partial<Record<T, RigOpts>>,
 	strength: number,
 	range: number,
 ) {
 	const rig = new KokoroRig(app, strength, range);
 	for (const [key, opts] of Object.entries(depthMap) as [T, RigOpts][]) {
-		containers[key]?.forEach((c) => {
-			rig.add(c, opts, key);
-		});
+		const c = containers[key];
+		if (!c) continue;
+		rig.add(c, opts, key);
 	}
 	return rig;
 }

@@ -4,24 +4,66 @@ import { Pane } from "tweakpane";
 import { buildContainers, buildRig, type LayerMap, type RigOpts } from "./lib";
 
 const LAYER_MAP = {
-	head: "顔",
-	eyeR: "瞳",
-	eyeL: "瞳L",
-	chest: "胸",
-	forearmL: "前腕L",
-	upperArmL: "上腕L",
-	forearmR: "前腕R",
-	upperArmR: "上腕R",
-	legs: "脚",
-	hairFront: "前髪",
-	hairSide: "前髪サイド",
-	hairBack: "後ろ髪",
-	skirt: "スカート",
-	earringsL: "ピアスL",
-	earringsR: "ピアスR",
-	ribbon: "胸リボン",
-	hat: "帽子",
+	head: { name: "顔", idx: 0 },
+	eyeL: { name: "瞳L", idx: 1 },
+	eyeR: { name: "瞳", idx: 0 },
+	body: { name: "胴体", idx: 0 },
+	shoulder: { name: "腕", idx: 0 },
+	chest: { name: "胸", idx: 0 },
+	forearmL: { name: "前腕L", idx: 0 },
+	upperArmL: { name: "上腕L", idx: 0 },
+	forearmR: { name: "前腕R", idx: 0 },
+	upperArmR: { name: "上腕R", idx: 0 },
+	legs: { name: "脚", idx: 0 },
+	hairFront: { name: "前髪", idx: 0 },
+	hairSide: { name: "前髪サイド", idx: 0 },
+	hairBack: { name: "後ろ髪", idx: 0 },
+	handL: { name: "手L", idx: 0 },
+	handR: { name: "手R", idx: 0 },
+	eyebrowsL: { name: "眉毛L", idx: 0 },
+	eyebrowsR: { name: "眉毛R", idx: 0 },
+	skirt: { name: "スカート", idx: 0 },
+	collar: { name: "シャツ襟", idx: 0 },
+	earringsL: { name: "ピアスL", idx: 0 },
+	earringsR: { name: "ピアスR", idx: 0 },
+	belt1: { name: "スカートベルト", idx: 0 },
+	belt2: { name: "スカートウェスト", idx: 0 },
+	buckle1: { name: "バックル", idx: 0 },
+	buckle2: { name: "バックル金具", idx: 0 },
+	ribbon: { name: "胸リボン", idx: 0 },
+	hat: { name: "帽子", idx: 0 },
 } as const satisfies LayerMap;
+
+const RIG_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
+	head: { depth: 0.5 },
+	eyeL: { depth: 0.1 },
+	eyeR: { depth: 0.1 },
+	body: { depth: 0.3 },
+	shoulder: { depth: 0.3 },
+	chest: { depth: 0.3 },
+	forearmL: { depth: 0.3 },
+	upperArmL: { depth: 0.3 },
+	forearmR: { depth: 0.3 },
+	upperArmR: { depth: 0.3 },
+	legs: { depth: 0.2 },
+	hairFront: { depth: 0.5 },
+	hairSide: { depth: 0.5 },
+	hairBack: { depth: 0.2 },
+	handL: { depth: 0.3 },
+	handR: { depth: 0.3 },
+	eyebrowsL: { depth: 0.5 },
+	eyebrowsR: { depth: 0.5 },
+	skirt: { depth: 0.3 },
+	collar: { depth: 0.3 },
+	earringsL: { depth: 0.8 },
+	earringsR: { depth: 0.8 },
+	belt1: { depth: 0.3 },
+	belt2: { depth: 0.3 },
+	buckle1: { depth: 0.3 },
+	buckle2: { depth: 0.3 },
+	ribbon: { depth: 0.3 },
+	hat: { depth: 0.2, pivot: { rx: 0.5, ry: 1.0 } },
+};
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
@@ -31,26 +73,6 @@ const SKIP = new Set([
 	"表情見本",
 	"透かし見本",
 ]);
-
-const RIG_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
-	head: { depth: 0.5 },
-	eyeR: { depth: 0.1 },
-	eyeL: { depth: 0.1 },
-	chest: { depth: 0.3, spring: { stiffness: 0.05 } },
-	forearmL: { depth: 0.3 },
-	upperArmL: { depth: 0.3 },
-	forearmR: { depth: 0.3 },
-	upperArmR: { depth: 0.3 },
-	legs: { depth: 0.2 },
-	hairFront: { depth: 0.8, spring: { stiffness: 0.1 } },
-	hairSide: { depth: 0.7, spring: { stiffness: 0.1 } },
-	hairBack: { depth: 0.3, spring: { stiffness: 0.1 } },
-	skirt: { depth: 0.3 },
-	earringsL: { depth: 0.8, spring: { stiffness: 0.05 } },
-	earringsR: { depth: 0.8, spring: { stiffness: 0.05 } },
-	ribbon: { depth: 0.8, spring: { stiffness: 0.05 } },
-	hat: { depth: 0.2, pivot: { rx: 0.5, ry: 1.0 } },
-};
 
 (async () => {
 	initializeCanvas((width, height) => {
@@ -76,7 +98,7 @@ const RIG_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
 	root.y = app.screen.height / 2;
 	app.stage.addChild(root);
 
-	const rig = buildRig(app, containers, RIG_MAP, 200, 20);
+	const rig = buildRig(app, containers, RIG_MAP, 200, 40);
 
 	const pane = new Pane();
 	for (const key of Object.keys(RIG_MAP) as (keyof typeof RIG_MAP)[]) {
