@@ -1,26 +1,26 @@
 import type * as PIXI from "pixi.js";
-import type { Container2d } from "pixi-projection";
+import { AFFINE, type Container2d } from "pixi-projection";
 import { Spring } from "wobble";
 
 export const RIG_MAP = {
-	head: { depth: 0.2 },
-	eyeL: { depth: 0.8 },
-	eyeR: { depth: 0.8 },
-	body: { depth: 0.3 },
-	shoulderL: { depth: 0.3 },
-	shoulderR: { depth: 0.3 },
-	chest: { depth: 0.3 },
-	forearmL: { depth: 0.3 },
-	upperArmL: { depth: 0.3 },
-	forearmR: { depth: 0.3 },
-	upperArmR: { depth: 0.3 },
-	legs: { depth: 0.2 },
-	hairFront: { depth: 0.5 },
-	hairSide: { depth: 0.5 },
-	hairBack: { depth: 0.2 },
-	handL: { depth: 0.3 },
-	handR: { depth: 0.3 },
-};
+	head: { depth: 0.3, turn: 0.2 },
+	eyeL: { depth: 0.5, turn: 0.2 },
+	eyeR: { depth: 0.5, turn: 0.2 },
+	body: { depth: 0.3, turn: 0.2 },
+	shoulderL: { depth: 0.3, turn: 0.2 },
+	shoulderR: { depth: 0.3, turn: 0.2 },
+	chest: { depth: 0.3, turn: 0.2 },
+	forearmL: { depth: 0.3, turn: 0 },
+	upperArmL: { depth: 0.3, turn: 0 },
+	forearmR: { depth: 0.3, turn: 0 },
+	upperArmR: { depth: 0.3, turn: 0 },
+	legs: { depth: 0.2, turn: 0.05 },
+	hairFront: { depth: 0.3, turn: 0.3 },
+	hairSide: { depth: 0.3, turn: 0.35 },
+	hairBack: { depth: 0.2, turn: 0.1 },
+	handL: { depth: 0.3, turn: 0 },
+	handR: { depth: 0.3, turn: 0 },
+} satisfies Record<string, { depth: number; turn?: number; lean?: number }>;
 
 export const DEFAULT_PIVOTS: Record<string, { rx: number; ry: number }> = {
 	head: { rx: 0.5, ry: 1.0 },
@@ -58,7 +58,7 @@ interface SpringState {
 
 interface ParallaxLayer {
 	key: keyof typeof RIG_MAP;
-	containers: PIXI.Container[];
+	containers: Container2d[];
 	spring: SpringState | null;
 }
 
@@ -129,7 +129,7 @@ export class KokoroRig {
 		this.current.y += this.focus.y - this.current.y;
 
 		for (const { containers, spring, key } of this.layers) {
-			const depth = RIG_MAP[key].depth;
+			const { depth, turn } = RIG_MAP[key];
 			const px = Math.max(
 				-this.range,
 				Math.min(this.range, this.current.x * this.strength * depth),
@@ -142,6 +142,16 @@ export class KokoroRig {
 			for (const container of containers) {
 				container.x = px + container.pivot.x;
 				container.y = py + container.pivot.y;
+				if (turn) {
+					container.proj.affine = AFFINE.AXIS_X;
+					container.proj.setAxisX(
+						{
+							x: 1.0 - Math.abs(this.current.x) * turn,
+							y: this.current.x * turn * 0.3,
+						},
+						1,
+					);
+				}
 				if (spring) {
 					spring.x.updateConfig({ fromValue: spring.valX, toValue: px });
 					container.skew.x = (spring.valX - px) * 0.002;

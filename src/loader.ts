@@ -99,8 +99,10 @@ export function byPath(path: string[]): GroupMatcher {
 		path.every((seg, i) => n.path[n.path.length - path.length + i] === seg);
 }
 
-export function psdGroup(groupName: string): GroupMatcher {
-	return (n) => n.path.includes(groupName);
+export function psdGroup(groupName: string, negative?: string[]): GroupMatcher {
+	return (n) =>
+		n.path.includes(groupName) &&
+		!negative?.some((neg) => n.path.includes(neg));
 }
 
 export function pipe(...matchers: GroupMatcher[]): GroupMatcher {

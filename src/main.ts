@@ -67,11 +67,7 @@ const SKIP = new Set([
 		head: pipe(psdGroup("帽子"), psdGroup("顔")),
 		eyeL: psdGroup("瞳L"),
 		eyeR: psdGroup("瞳"),
-		body: pipe(
-			byName("胴体"),
-			psdGroup("スカート"),
-			byName("スカートウェスト"),
-		),
+		body: pipe(psdGroup("襟裏"), psdGroup("体", ["脚"])),
 		shoulderL: (n) => ["袖L1", "袖L2", "袖影L"].includes(n.name),
 		shoulderR: (n) => ["袖R1", "袖R2", "袖影R"].includes(n.name),
 		chest: psdGroup("胸"),
@@ -87,7 +83,7 @@ const SKIP = new Set([
 		handR: psdGroup("手R"),
 	});
 
-	const rig = new KokoroRig(app, containers, 400, 30);
+	const rig = new KokoroRig(app, containers, 400, 40);
 
 	window.addEventListener("pointermove", (e: PointerEvent) => {
 		const cx = window.innerWidth / 2;
