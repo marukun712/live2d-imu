@@ -2,7 +2,7 @@ import { initializeCanvas, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
 import { Pane } from "tweakpane";
 import { KokoroAnim } from "./anim";
-import { buildContainers, buildRig, type LayerMap, type RigOpts } from "./lib";
+import { buildContainers, buildRig, type LayerMap } from "./lib";
 
 const LAYER_MAP = {
 	head: { name: "顔", idx: 0 },
@@ -34,37 +34,6 @@ const LAYER_MAP = {
 	ribbon: { name: "胸リボン", idx: 0 },
 	hat: { name: "帽子", idx: 0 },
 } as const satisfies LayerMap;
-
-const RIG_MAP: Partial<Record<keyof typeof LAYER_MAP, RigOpts>> = {
-	head: { depth: 0.5 },
-	eyeL: { depth: 0.1 },
-	eyeR: { depth: 0.1 },
-	body: { depth: 0.3 },
-	shoulder: { depth: 0.3 },
-	chest: { depth: 0.3 },
-	forearmL: { depth: 0.3 },
-	upperArmL: { depth: 0.3 },
-	forearmR: { depth: 0.3 },
-	upperArmR: { depth: 0.3 },
-	legs: { depth: 0.2 },
-	hairFront: { depth: 0.5 },
-	hairSide: { depth: 0.5 },
-	hairBack: { depth: 0.2 },
-	handL: { depth: 0.3 },
-	handR: { depth: 0.3 },
-	eyebrowsL: { depth: 0.5 },
-	eyebrowsR: { depth: 0.5 },
-	skirt: { depth: 0.3 },
-	collar: { depth: 0.3 },
-	earringsL: { depth: 0.8 },
-	earringsR: { depth: 0.8 },
-	belt1: { depth: 0.3 },
-	belt2: { depth: 0.3 },
-	buckle1: { depth: 0.3 },
-	buckle2: { depth: 0.3 },
-	ribbon: { depth: 0.3 },
-	hat: { depth: 0.2 },
-};
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
