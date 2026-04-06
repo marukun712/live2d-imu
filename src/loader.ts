@@ -81,20 +81,11 @@ export function drawCharacter(layers: PSDIndex[]) {
 export function groupNodes<T extends string>(
 	nodes: SpriteNode[],
 	map: GroupMap<T>,
-): Partial<Record<T, Container2d>> {
-	const result: Partial<Record<T, Container2d>> = {};
+): Partial<Record<T, Container2d[]>> {
+	const result: Partial<Record<T, Container2d[]>> = {};
 	for (const [key, match] of Object.entries(map) as [T, GroupMatcher][]) {
-		const matched = nodes.filter(match);
-		if (matched.length === 0) continue;
-		if (matched.length === 1) {
-			result[key] = matched[0].container;
-		} else {
-			const group = new Container2d();
-			matched.forEach((n) => {
-				group.addChild(n.container);
-			});
-			result[key] = group;
-		}
+		const matched = nodes.filter(match).map((n) => n.container);
+		if (matched.length > 0) result[key as T] = matched;
 	}
 	return result;
 }
@@ -108,22 +99,10 @@ export function byPath(path: string[]): GroupMatcher {
 		path.every((seg, i) => n.path[n.path.length - path.length + i] === seg);
 }
 
-function collectChildNames(psd: Psd, groupName: string): Set<string> {
-	const names = new Set<string>();
-	function walk(layer: Layer) {
-		if (layer.name?.trim() === groupName) {
-			layer.children?.forEach((l) => {
-				l.name && names.add(l.name.trim());
-			});
-			return;
-		}
-		layer.children?.forEach(walk);
-	}
-	psd.children?.forEach(walk);
-	return names;
+export function psdGroup(groupName: string): GroupMatcher {
+	return (n) => n.path.includes(groupName);
 }
 
-export function psdGroup(psd: Psd, groupName: string): GroupMatcher {
-	const names = collectChildNames(psd, groupName);
-	return (n) => names.has(n.name);
+export function pipe(...matchers: GroupMatcher[]): GroupMatcher {
+	return (n) => matchers.some((m) => m(n));
 }

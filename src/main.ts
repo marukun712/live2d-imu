@@ -1,12 +1,13 @@
 import { initializeCanvas, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
 import { Container2d } from "pixi-projection";
-import { Pane } from "tweakpane";
+import { Viewport } from "pixi-viewport";
 import {
 	byName,
 	drawCharacter,
 	getPSDIndex,
 	groupNodes,
+	pipe,
 	psdGroup,
 } from "./loader";
 import { KokoroRig } from "./rig";
@@ -37,56 +38,60 @@ const SKIP = new Set([
 		backgroundColor: 0xffffff,
 	});
 
+	const viewport = new Viewport({
+		screenWidth: window.innerWidth,
+		screenHeight: window.innerHeight,
+		worldWidth: 1000,
+		worldHeight: 1000,
+		events: app.renderer.events,
+	});
+
+	app.stage.addChild(viewport);
+
+	viewport.drag().pinch().wheel();
+
 	const res = await fetch("/models/character.psd");
 	const psd = readPsd(await res.arrayBuffer());
 
 	const index = getPSDIndex(psd, SKIP);
 	const nodes = drawCharacter(index);
 
-	console.log(index);
+	console.log(index.map((n) => n.path.join(" > ")));
 
 	const root = new Container2d();
 	for (const node of nodes) root.addChild(node.container);
-	root.scale.set(0.12);
-	root.x = app.screen.width / 2;
-	root.y = app.screen.height / 2;
-	app.stage.addChild(root);
+	root.scale.set(0.1);
+	viewport.addChild(root);
 
 	const containers = groupNodes(nodes, {
-		head: psdGroup(psd, "顔"),
-		eyeL: byName("瞳L"),
-		eyeR: psdGroup(psd, "瞳"),
-		body: byName("胴体"),
-		shoulder: psdGroup(psd, "腕"),
-		chest: psdGroup(psd, "胸"),
+		head: pipe(psdGroup("帽子"), psdGroup("顔")),
+		eyeL: psdGroup("瞳L"),
+		eyeR: psdGroup("瞳"),
+		body: pipe(
+			byName("胴体"),
+			psdGroup("スカート"),
+			byName("スカートウェスト"),
+		),
+		shoulderL: (n) => ["袖L1", "袖L2", "袖影L"].includes(n.name),
+		shoulderR: (n) => ["袖R1", "袖R2", "袖影R"].includes(n.name),
+		chest: psdGroup("胸"),
 		forearmL: byName("前腕L"),
 		upperArmL: byName("上腕L"),
 		forearmR: byName("前腕R"),
 		upperArmR: byName("上腕R"),
-		legs: psdGroup(psd, "脚"),
-		hairFront: psdGroup(psd, "前髪"),
-		hairSide: psdGroup(psd, "前髪サイド"),
-		hairBack: psdGroup(psd, "後ろ髪"),
-		handL: psdGroup(psd, "手L"),
-		handR: psdGroup(psd, "手R"),
+		legs: psdGroup("脚"),
+		hairFront: psdGroup("前髪"),
+		hairSide: psdGroup("前髪サイド"),
+		hairBack: psdGroup("後ろ髪"),
+		handL: psdGroup("手L"),
+		handR: psdGroup("手R"),
 	});
 
-	console.log(containers);
+	const rig = new KokoroRig(app, containers, 400, 30);
 
-	const rig = new KokoroRig(app, containers, 200, 40);
-
-	const params = {
-		focusX: 0,
-		focusY: 0,
-	};
-
-	const pane = new Pane();
-
-	const focusFolder = pane.addFolder({ title: "Focus" });
-	focusFolder
-		.addBinding(params, "focusX", { min: -1, max: 1, label: "X" })
-		.on("change", () => rig.setFocus(params.focusX, params.focusY));
-	focusFolder
-		.addBinding(params, "focusY", { min: -1, max: 1, label: "Y" })
-		.on("change", () => rig.setFocus(params.focusX, params.focusY));
+	window.addEventListener("pointermove", (e: PointerEvent) => {
+		const cx = window.innerWidth / 2;
+		const cy = window.innerHeight / 2;
+		rig.setFocus((e.clientX - cx) / cx, (e.clientY - cy) / cy);
+	});
 })();

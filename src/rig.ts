@@ -3,11 +3,12 @@ import type { Container2d } from "pixi-projection";
 import { Spring } from "wobble";
 
 export const RIG_MAP = {
-	head: { depth: 0.5 },
-	eyeL: { depth: 0.1 },
-	eyeR: { depth: 0.1 },
+	head: { depth: 0.2 },
+	eyeL: { depth: 0.8 },
+	eyeR: { depth: 0.8 },
 	body: { depth: 0.3 },
-	shoulder: { depth: 0.3 },
+	shoulderL: { depth: 0.3 },
+	shoulderR: { depth: 0.3 },
 	chest: { depth: 0.3 },
 	forearmL: { depth: 0.3 },
 	upperArmL: { depth: 0.3 },
@@ -26,7 +27,8 @@ export const DEFAULT_PIVOTS: Record<string, { rx: number; ry: number }> = {
 	eyeL: { rx: 0.5, ry: 0.5 },
 	eyeR: { rx: 0.5, ry: 0.5 },
 	body: { rx: 0.5, ry: 0.0 },
-	shoulder: { rx: 0.5, ry: 0.0 },
+	shoulderL: { rx: 0.5, ry: 0.0 },
+	shoulderR: { rx: 0.5, ry: 0.0 },
 	chest: { rx: 0.5, ry: 0.0 },
 	forearmL: { rx: 0.5, ry: 0.0 },
 	upperArmL: { rx: 0.5, ry: 0.0 },
@@ -39,11 +41,9 @@ export const DEFAULT_PIVOTS: Record<string, { rx: number; ry: number }> = {
 };
 
 export const SPRING_PRESETS: Partial<Record<string, SpringOpts>> = {
-	hairFront: { stiffness: 80, damping: 30 },
-	hairSide: { stiffness: 80, damping: 30 },
-	hairBack: { stiffness: 80, damping: 10 },
-	chest: { stiffness: 40, damping: 2 },
-	shoulder: { stiffness: 40, damping: 2 },
+	hairFront: { stiffness: 80, damping: 40 },
+	hairSide: { stiffness: 80, damping: 40 },
+	hairBack: { stiffness: 80, damping: 40 },
 };
 
 interface SpringOpts {
@@ -58,7 +58,7 @@ interface SpringState {
 
 interface ParallaxLayer {
 	key: keyof typeof RIG_MAP;
-	container: PIXI.Container;
+	containers: PIXI.Container[];
 	spring: SpringState | null;
 }
 
@@ -72,7 +72,7 @@ export class KokoroRig {
 
 	constructor(
 		app: PIXI.Application,
-		containers: Partial<Record<keyof typeof RIG_MAP, Container2d>>,
+		containers: Partial<Record<keyof typeof RIG_MAP, Container2d[]>>,
 		strength: number,
 		range: number,
 	) {
@@ -91,16 +91,18 @@ export class KokoroRig {
 		this.focus.y = y;
 	}
 
-	private add(key: keyof typeof RIG_MAP, container: PIXI.Container) {
+	private add(key: keyof typeof RIG_MAP, containers: Container2d[]) {
 		const pivot = DEFAULT_PIVOTS[key];
 		const springOpts = SPRING_PRESETS[key];
 
-		if (pivot || springOpts) {
-			const b = container.getLocalBounds();
-			container.pivot.set(
-				b.x + b.width * (pivot?.rx ?? 0),
-				b.y + b.height * (pivot?.ry ?? 0),
-			);
+		for (const container of containers) {
+			if (pivot || springOpts) {
+				const b = container.getLocalBounds();
+				container.pivot.set(
+					b.x + b.width * (pivot?.rx ?? 0),
+					b.y + b.height * (pivot?.ry ?? 0),
+				);
+			}
 		}
 
 		let spring: SpringState | null = null;
@@ -119,16 +121,15 @@ export class KokoroRig {
 			spring = state;
 		}
 
-		this.layers.push({ container, key, spring });
+		this.layers.push({ containers, key, spring });
 	}
 
 	private tick() {
-		this.current.x += (this.focus.x - this.current.x) * 0.1;
-		this.current.y += (this.focus.y - this.current.y) * 0.1;
+		this.current.x += this.focus.x - this.current.x;
+		this.current.y += this.focus.y - this.current.y;
 
-		for (const { container, spring, key } of this.layers) {
+		for (const { containers, spring, key } of this.layers) {
 			const depth = RIG_MAP[key].depth;
-
 			const px = Math.max(
 				-this.range,
 				Math.min(this.range, this.current.x * this.strength * depth),
@@ -138,12 +139,13 @@ export class KokoroRig {
 				Math.min(this.range, this.current.y * this.strength * depth),
 			);
 
-			container.x = px + container.pivot.x;
-			container.y = py + container.pivot.y;
-
-			if (spring) {
-				spring.x.updateConfig({ fromValue: spring.valX, toValue: px });
-				container.skew.x = (spring.valX - px) * 0.002;
+			for (const container of containers) {
+				container.x = px + container.pivot.x;
+				container.y = py + container.pivot.y;
+				if (spring) {
+					spring.x.updateConfig({ fromValue: spring.valX, toValue: px });
+					container.skew.x = (spring.valX - px) * 0.002;
+				}
 			}
 		}
 	}
