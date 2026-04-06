@@ -72,7 +72,7 @@ export class KokoroRig {
 
 	constructor(
 		app: PIXI.Application,
-		containers: Record<keyof typeof RIG_MAP, Container2d>,
+		containers: Partial<Record<keyof typeof RIG_MAP, Container2d>>,
 		strength: number,
 		range: number,
 	) {

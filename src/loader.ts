@@ -107,3 +107,23 @@ export function byPath(path: string[]): GroupMatcher {
 	return (n) =>
 		path.every((seg, i) => n.path[n.path.length - path.length + i] === seg);
 }
+
+function collectChildNames(psd: Psd, groupName: string): Set<string> {
+	const names = new Set<string>();
+	function walk(layer: Layer) {
+		if (layer.name?.trim() === groupName) {
+			layer.children?.forEach((l) => {
+				l.name && names.add(l.name.trim());
+			});
+			return;
+		}
+		layer.children?.forEach(walk);
+	}
+	psd.children?.forEach(walk);
+	return names;
+}
+
+export function psdGroup(psd: Psd, groupName: string): GroupMatcher {
+	const names = collectChildNames(psd, groupName);
+	return (n) => names.has(n.name);
+}
