@@ -3,17 +3,15 @@ import { Spring } from "wobble";
 
 export const RIG_MAP = {
 	head: { depth: 0.5 },
-	eyeL: { depth: 0.6 },
-	eyeR: { depth: 0.6 },
+	eyeL: { depth: 0.55 },
+	eyeR: { depth: 0.55 },
 	body: { depth: 0.25 },
-	shoulderL: { depth: 0.26 },
-	shoulderR: { depth: 0.26 },
 	forearmL: { depth: 0.24 },
 	upperArmL: { depth: 0.24 },
 	forearmR: { depth: 0.24 },
 	upperArmR: { depth: 0.24 },
 	legs: { depth: 0.1 },
-	hairFront: { depth: 0.56 },
+	hairFront: { depth: 0.63 },
 	hairSide: { depth: 0.51 },
 	hairBack: { depth: 0.46 },
 	handL: { depth: 0.24 },
@@ -44,18 +42,6 @@ export const DEFORM_MAP = {
 	hairBack: {
 		turnRight: { x: 8, scaleX: 0.9 },
 		turnLeft: { x: -8, scaleX: 0.9 },
-	},
-	body: {
-		turnRight: { scaleX: 0.8 },
-		turnLeft: { scaleX: 0.8 },
-	},
-	shoulderL: {
-		turnRight: { x: 10, scaleX: 0.7 },
-		turnLeft: { x: 4, scaleX: 1.05 },
-	},
-	shoulderR: {
-		turnRight: { x: -4, scaleX: 1.05 },
-		turnLeft: { x: -10, scaleX: 0.7 },
 	},
 };
 
@@ -161,6 +147,11 @@ export class KokoroRig {
 	}
 
 	private add(key: keyof typeof RIG_MAP, containers: PIXI.Container[]) {
+		for (const container of containers) {
+			const b = container.getLocalBounds();
+			container.pivot.set(b.x + b.width / 2, b.y + b.height / 2);
+		}
+
 		const springOpts = this.springPresets[key];
 		let spring: SpringState | null = null;
 		if (springOpts) {
@@ -181,8 +172,8 @@ export class KokoroRig {
 	}
 
 	private tick() {
-		this.current.x += this.focus.x - this.current.x;
-		this.current.y += this.focus.y - this.current.y;
+		this.current.x += (this.focus.x - this.current.x) * 0.1;
+		this.current.y += (this.focus.y - this.current.y) * 0.1;
 		for (const { containers, spring, key } of this.layers) {
 			const rigEntry = this.rigMap[key];
 			if (!rigEntry) continue;
@@ -198,8 +189,8 @@ export class KokoroRig {
 			);
 
 			for (const container of containers) {
-				container.x = px;
-				container.y = py;
+				container.x = px + container.pivot.x;
+				container.y = py + container.pivot.y;
 
 				if (spring) {
 					spring.x.updateConfig({ fromValue: spring.valX, toValue: px });
