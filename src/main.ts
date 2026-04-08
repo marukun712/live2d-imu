@@ -83,7 +83,7 @@ const SKIP = new Set([
 		handR: psdGroup("手R"),
 	});
 
-	const rig = new KokoroRig(app, containers, 400, 40);
+	const rig = new KokoroRig(app, containers, 400, 200);
 
 	window.addEventListener("pointermove", (e: PointerEvent) => {
 		const cx = window.innerWidth / 2;

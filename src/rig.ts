@@ -1,26 +1,26 @@
 import type * as PIXI from "pixi.js";
-import { AFFINE, type Container2d } from "pixi-projection";
+import type { Container2d } from "pixi-projection";
 import { Spring } from "wobble";
 
 export const RIG_MAP = {
-	head: { depth: 0.3, turn: 0.2 },
-	eyeL: { depth: 0.5, turn: 0.2 },
-	eyeR: { depth: 0.5, turn: 0.2 },
-	body: { depth: 0.3, turn: 0.2 },
-	shoulderL: { depth: 0.3, turn: 0.2 },
-	shoulderR: { depth: 0.3, turn: 0.2 },
-	chest: { depth: 0.3, turn: 0.2 },
-	forearmL: { depth: 0.3, turn: 0 },
-	upperArmL: { depth: 0.3, turn: 0 },
-	forearmR: { depth: 0.3, turn: 0 },
-	upperArmR: { depth: 0.3, turn: 0 },
-	legs: { depth: 0.2, turn: 0.05 },
-	hairFront: { depth: 0.3, turn: 0.3 },
-	hairSide: { depth: 0.3, turn: 0.35 },
-	hairBack: { depth: 0.2, turn: 0.1 },
-	handL: { depth: 0.3, turn: 0 },
-	handR: { depth: 0.3, turn: 0 },
-} satisfies Record<string, { depth: number; turn?: number; lean?: number }>;
+	head: { depth: 0.4 },
+	eyeL: { depth: 0.5 },
+	eyeR: { depth: 0.5 },
+	body: { depth: 0.3 },
+	shoulderL: { depth: 0.3 },
+	shoulderR: { depth: 0.3 },
+	chest: { depth: 0.3 },
+	forearmL: { depth: 0.3 },
+	upperArmL: { depth: 0.3 },
+	forearmR: { depth: 0.3 },
+	upperArmR: { depth: 0.3 },
+	legs: { depth: 0.2 },
+	hairFront: { depth: 0.5 },
+	hairSide: { depth: 0.3 },
+	hairBack: { depth: 0.2 },
+	handL: { depth: 0.3 },
+	handR: { depth: 0.3 },
+};
 
 export const DEFAULT_PIVOTS: Record<string, { rx: number; ry: number }> = {
 	head: { rx: 0.5, ry: 1.0 },
@@ -60,6 +60,67 @@ interface ParallaxLayer {
 	key: keyof typeof RIG_MAP;
 	containers: Container2d[];
 	spring: SpringState | null;
+}
+
+export interface DeformKey {
+	x?: number;
+	y?: number;
+	scaleX?: number;
+	scaleY?: number;
+	skewX?: number;
+}
+
+export interface DeformDef {
+	turnLeft?: DeformKey;
+	turnRight?: DeformKey;
+	lookUp?: DeformKey;
+	lookDown?: DeformKey;
+}
+
+export const DEFORM_MAP: Partial<Record<keyof typeof RIG_MAP, DeformDef>> = {
+	eyeL: {
+		turnRight: { x: 40, scaleX: 0.5 },
+		turnLeft: { x: -5, scaleX: 1.0 },
+	},
+	eyeR: {
+		turnRight: { x: 5, scaleX: 1.0 },
+		turnLeft: { x: -40, scaleX: 0.5 },
+	},
+	head: {
+		turnRight: { x: 10, scaleX: 0.85 },
+		turnLeft: { x: -10, scaleX: 0.85 },
+	},
+	hairFront: {
+		turnRight: { x: 15, scaleX: 0.85 },
+		turnLeft: { x: -15, scaleX: 0.85 },
+	},
+	hairSide: {
+		turnRight: { x: 20, scaleX: 0.8 },
+		turnLeft: { x: -20, scaleX: 0.8 },
+	},
+};
+
+function resolveDeform(def: DeformDef, cx: number, _cy: number): DeformKey {
+	const zero: DeformKey = { x: 0, y: 0, scaleX: 1, scaleY: 1, skewX: 0 };
+	const result = { ...zero };
+
+	if (cx > 0 && def.turnRight) {
+		const t = cx;
+		result.x = (result.x ?? 0) + (def.turnRight.x ?? 0) * t;
+		result.y = (result.y ?? 0) + (def.turnRight.y ?? 0) * t;
+		result.scaleX = 1 + ((def.turnRight.scaleX ?? 1) - 1) * t;
+		result.scaleY = 1 + ((def.turnRight.scaleY ?? 1) - 1) * t;
+		result.skewX = (result.skewX ?? 0) + (def.turnRight.skewX ?? 0) * t;
+	} else if (cx < 0 && def.turnLeft) {
+		const t = -cx;
+		result.x = (result.x ?? 0) + (def.turnLeft.x ?? 0) * t;
+		result.y = (result.y ?? 0) + (def.turnLeft.y ?? 0) * t;
+		result.scaleX = 1 + ((def.turnLeft.scaleX ?? 1) - 1) * t;
+		result.scaleY = 1 + ((def.turnLeft.scaleY ?? 1) - 1) * t;
+		result.skewX = (result.skewX ?? 0) + (def.turnLeft.skewX ?? 0) * t;
+	}
+
+	return result;
 }
 
 export class KokoroRig {
@@ -129,7 +190,7 @@ export class KokoroRig {
 		this.current.y += this.focus.y - this.current.y;
 
 		for (const { containers, spring, key } of this.layers) {
-			const { depth, turn } = RIG_MAP[key];
+			const { depth } = RIG_MAP[key];
 			const px = Math.max(
 				-this.range,
 				Math.min(this.range, this.current.x * this.strength * depth),
@@ -142,19 +203,20 @@ export class KokoroRig {
 			for (const container of containers) {
 				container.x = px + container.pivot.x;
 				container.y = py + container.pivot.y;
-				if (turn) {
-					container.proj.affine = AFFINE.AXIS_X;
-					container.proj.setAxisX(
-						{
-							x: 1.0 - Math.abs(this.current.x) * turn,
-							y: this.current.x * turn * 0.3,
-						},
-						1,
-					);
-				}
+
 				if (spring) {
 					spring.x.updateConfig({ fromValue: spring.valX, toValue: px });
 					container.skew.x = (spring.valX - px) * 0.002;
+				}
+
+				const deformDef = DEFORM_MAP[key];
+				if (deformDef) {
+					const d = resolveDeform(deformDef, this.current.x, this.current.y);
+					container.x += d.x ?? 0;
+					container.y += d.y ?? 0;
+					if (d.scaleX !== undefined) container.scale.x = d.scaleX;
+					if (d.scaleY !== undefined) container.scale.y = d.scaleY;
+					if (d.skewX !== undefined) container.skew.x = d.skewX;
 				}
 			}
 		}
