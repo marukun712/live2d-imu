@@ -1,6 +1,5 @@
-import type { Layer, Psd } from "ag-psd";
+import { type Layer, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
-import { Container2d, Sprite2d } from "pixi-projection";
 
 export interface PSDIndex {
 	name: string;
@@ -14,13 +13,16 @@ export interface PSDIndex {
 export interface SpriteNode {
 	name: string;
 	path: string[];
-	container: Container2d;
+	container: PIXI.Container;
 }
 
 export type GroupMatcher = (node: SpriteNode) => boolean;
 export type GroupMap<T extends string> = Record<T, GroupMatcher>;
 
-export function getPSDIndex(psd: Psd, skip: Set<string> = new Set()) {
+export async function getPSDIndex(url: string, skip: Set<string> = new Set()) {
+	const res = await fetch(url);
+	const psd = readPsd(await res.arrayBuffer());
+
 	const result: PSDIndex[] = [];
 
 	function walk(layer: Layer, path: string[]) {
@@ -50,24 +52,24 @@ export function getPSDIndex(psd: Psd, skip: Set<string> = new Set()) {
 
 export function drawCharacter(layers: PSDIndex[]) {
 	const nodes: SpriteNode[] = [];
-	let lastSprite: Sprite2d | null = null;
+	let lastSprite: PIXI.Sprite | null = null;
 
 	for (const layer of layers) {
-		const sprite = new Sprite2d(PIXI.Texture.from(layer.canvas));
+		const sprite = new PIXI.Sprite(PIXI.Texture.from(layer.canvas));
 		sprite.x = layer.x;
 		sprite.y = layer.y;
 
 		if (layer.clipping && lastSprite) {
-			const mask = new Sprite2d(lastSprite.texture);
+			const mask = new PIXI.Sprite(lastSprite.texture);
 			mask.x = lastSprite.x;
 			mask.y = lastSprite.y;
-			const container = new Container2d();
+			const container = new PIXI.Container();
 			container.addChild(mask);
 			sprite.mask = mask;
 			container.addChild(sprite);
 			nodes.push({ name: layer.name, path: layer.path, container });
 		} else {
-			const container = new Container2d();
+			const container = new PIXI.Container();
 			container.addChild(sprite);
 			nodes.push({ name: layer.name, path: layer.path, container });
 		}
@@ -81,8 +83,8 @@ export function drawCharacter(layers: PSDIndex[]) {
 export function groupNodes<T extends string>(
 	nodes: SpriteNode[],
 	map: GroupMap<T>,
-): Partial<Record<T, Container2d[]>> {
-	const result: Partial<Record<T, Container2d[]>> = {};
+): Record<T, PIXI.Container[]> {
+	const result = {} as Record<T, PIXI.Container[]>;
 	for (const [key, match] of Object.entries(map) as [T, GroupMatcher][]) {
 		const matched = nodes.filter(match).map((n) => n.container);
 		if (matched.length > 0) result[key as T] = matched;

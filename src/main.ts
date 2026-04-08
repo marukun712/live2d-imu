@@ -1,6 +1,5 @@
-import { initializeCanvas, readPsd } from "ag-psd";
+import { initializeCanvas } from "ag-psd";
 import * as PIXI from "pixi.js";
-import { Container2d } from "pixi-projection";
 import { Viewport } from "pixi-viewport";
 import {
 	byName,
@@ -29,14 +28,14 @@ const SKIP = new Set([
 		return canvas;
 	});
 
-	const view = document.createElement("canvas");
-	document.body.appendChild(view);
+	const app = new PIXI.Application();
 
-	const app = new PIXI.Application({
-		view,
+	await app.init({
 		resizeTo: window,
 		backgroundColor: 0xffffff,
 	});
+
+	document.body.appendChild(app.canvas);
 
 	const viewport = new Viewport({
 		screenWidth: window.innerWidth,
@@ -50,27 +49,23 @@ const SKIP = new Set([
 
 	viewport.drag().pinch().wheel();
 
-	const res = await fetch("/models/character.psd");
-	const psd = readPsd(await res.arrayBuffer());
-
-	const index = getPSDIndex(psd, SKIP);
+	const index = await getPSDIndex("/models/character.psd", SKIP);
 	const nodes = drawCharacter(index);
 
 	console.log(index.map((n) => n.path.join(" > ")));
 
-	const root = new Container2d();
+	const root = new PIXI.Container();
 	for (const node of nodes) root.addChild(node.container);
 	root.scale.set(0.1);
 	viewport.addChild(root);
 
 	const containers = groupNodes(nodes, {
-		head: pipe(psdGroup("帽子"), psdGroup("顔")),
+		head: pipe(psdGroup("帽子"), psdGroup("顔"), psdGroup("耳")),
 		eyeL: psdGroup("瞳L"),
 		eyeR: psdGroup("瞳"),
 		body: pipe(psdGroup("襟裏"), psdGroup("体", ["脚"])),
 		shoulderL: (n) => ["袖L1", "袖L2", "袖影L"].includes(n.name),
 		shoulderR: (n) => ["袖R1", "袖R2", "袖影R"].includes(n.name),
-		chest: psdGroup("胸"),
 		forearmL: byName("前腕L"),
 		upperArmL: byName("上腕L"),
 		forearmR: byName("前腕R"),

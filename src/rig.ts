@@ -1,49 +1,62 @@
 import type * as PIXI from "pixi.js";
-import type { Container2d } from "pixi-projection";
 import { Spring } from "wobble";
 
 export const RIG_MAP = {
-	head: { depth: 0.4 },
-	eyeL: { depth: 0.5 },
-	eyeR: { depth: 0.5 },
-	body: { depth: 0.3 },
-	shoulderL: { depth: 0.3 },
-	shoulderR: { depth: 0.3 },
-	chest: { depth: 0.3 },
-	forearmL: { depth: 0.3 },
-	upperArmL: { depth: 0.3 },
-	forearmR: { depth: 0.3 },
-	upperArmR: { depth: 0.3 },
-	legs: { depth: 0.2 },
-	hairFront: { depth: 0.5 },
-	hairSide: { depth: 0.3 },
-	hairBack: { depth: 0.2 },
-	handL: { depth: 0.3 },
-	handR: { depth: 0.3 },
+	head: { depth: 0.5 },
+	eyeL: { depth: 0.6 },
+	eyeR: { depth: 0.6 },
+	body: { depth: 0.25 },
+	shoulderL: { depth: 0.26 },
+	shoulderR: { depth: 0.26 },
+	forearmL: { depth: 0.24 },
+	upperArmL: { depth: 0.24 },
+	forearmR: { depth: 0.24 },
+	upperArmR: { depth: 0.24 },
+	legs: { depth: 0.1 },
+	hairFront: { depth: 0.56 },
+	hairSide: { depth: 0.51 },
+	hairBack: { depth: 0.46 },
+	handL: { depth: 0.24 },
+	handR: { depth: 0.24 },
+} as const;
+
+export const SPRING_PRESETS = {
+	hairFront: { stiffness: 60, damping: 30 },
+	hairSide: { stiffness: 42, damping: 20 },
+	hairBack: { stiffness: 28, damping: 14 },
 };
 
-export const DEFAULT_PIVOTS: Record<string, { rx: number; ry: number }> = {
-	head: { rx: 0.5, ry: 1.0 },
-	eyeL: { rx: 0.5, ry: 0.5 },
-	eyeR: { rx: 0.5, ry: 0.5 },
-	body: { rx: 0.5, ry: 0.0 },
-	shoulderL: { rx: 0.5, ry: 0.0 },
-	shoulderR: { rx: 0.5, ry: 0.0 },
-	chest: { rx: 0.5, ry: 0.0 },
-	forearmL: { rx: 0.5, ry: 0.0 },
-	upperArmL: { rx: 0.5, ry: 0.0 },
-	forearmR: { rx: 0.5, ry: 0.0 },
-	upperArmR: { rx: 0.5, ry: 0.0 },
-	legs: { rx: 0.5, ry: 0.0 },
-	hairFront: { rx: 0.5, ry: 0.0 },
-	hairSide: { rx: 0.5, ry: 0.0 },
-	hairBack: { rx: 0.5, ry: 0.0 },
-};
-
-export const SPRING_PRESETS: Partial<Record<string, SpringOpts>> = {
-	hairFront: { stiffness: 80, damping: 40 },
-	hairSide: { stiffness: 80, damping: 40 },
-	hairBack: { stiffness: 80, damping: 40 },
+export const DEFORM_MAP = {
+	head: {
+		turnRight: { x: 14, scaleX: 0.86 },
+		turnLeft: { x: -14, scaleX: 0.86 },
+		lookUp: { y: -8, scaleY: 0.95 },
+		lookDown: { y: 6, scaleY: 1.02 },
+	},
+	hairFront: {
+		turnRight: { x: 18, scaleX: 0.84 },
+		turnLeft: { x: -18, scaleX: 0.84 },
+	},
+	hairSide: {
+		turnRight: { x: 26, scaleX: 0.76 },
+		turnLeft: { x: -26, scaleX: 0.76 },
+	},
+	hairBack: {
+		turnRight: { x: 8, scaleX: 0.9 },
+		turnLeft: { x: -8, scaleX: 0.9 },
+	},
+	body: {
+		turnRight: { scaleX: 0.8 },
+		turnLeft: { scaleX: 0.8 },
+	},
+	shoulderL: {
+		turnRight: { x: 10, scaleX: 0.7 },
+		turnLeft: { x: 4, scaleX: 1.05 },
+	},
+	shoulderR: {
+		turnRight: { x: -4, scaleX: 1.05 },
+		turnLeft: { x: -10, scaleX: 0.7 },
+	},
 };
 
 interface SpringOpts {
@@ -58,7 +71,7 @@ interface SpringState {
 
 interface ParallaxLayer {
 	key: keyof typeof RIG_MAP;
-	containers: Container2d[];
+	containers: PIXI.Container[];
 	spring: SpringState | null;
 }
 
@@ -77,33 +90,11 @@ export interface DeformDef {
 	lookDown?: DeformKey;
 }
 
-export const DEFORM_MAP: Partial<Record<keyof typeof RIG_MAP, DeformDef>> = {
-	eyeL: {
-		turnRight: { x: 40, scaleX: 0.5 },
-		turnLeft: { x: -5, scaleX: 1.0 },
-	},
-	eyeR: {
-		turnRight: { x: 5, scaleX: 1.0 },
-		turnLeft: { x: -40, scaleX: 0.5 },
-	},
-	head: {
-		turnRight: { x: 10, scaleX: 0.85 },
-		turnLeft: { x: -10, scaleX: 0.85 },
-	},
-	hairFront: {
-		turnRight: { x: 15, scaleX: 0.85 },
-		turnLeft: { x: -15, scaleX: 0.85 },
-	},
-	hairSide: {
-		turnRight: { x: 20, scaleX: 0.8 },
-		turnLeft: { x: -20, scaleX: 0.8 },
-	},
-};
+export type RigMapValue = { depth: number };
 
 function resolveDeform(def: DeformDef, cx: number, _cy: number): DeformKey {
 	const zero: DeformKey = { x: 0, y: 0, scaleX: 1, scaleY: 1, skewX: 0 };
 	const result = { ...zero };
-
 	if (cx > 0 && def.turnRight) {
 		const t = cx;
 		result.x = (result.x ?? 0) + (def.turnRight.x ?? 0) * t;
@@ -119,8 +110,13 @@ function resolveDeform(def: DeformDef, cx: number, _cy: number): DeformKey {
 		result.scaleY = 1 + ((def.turnLeft.scaleY ?? 1) - 1) * t;
 		result.skewX = (result.skewX ?? 0) + (def.turnLeft.skewX ?? 0) * t;
 	}
-
 	return result;
+}
+
+export interface KokoroRigOptions {
+	rigMap: Record<keyof typeof RIG_MAP, RigMapValue>;
+	springPresets?: Partial<Record<string, SpringOpts>>;
+	deformMap?: Partial<Record<keyof typeof RIG_MAP, DeformDef>>;
 }
 
 export class KokoroRig {
@@ -128,20 +124,32 @@ export class KokoroRig {
 	private readonly strength: number;
 	private readonly layers: ParallaxLayer[] = [];
 
+	private readonly rigMap: Record<keyof typeof RIG_MAP, RigMapValue>;
+	private readonly springPresets: Partial<Record<string, SpringOpts>>;
+	private readonly deformMap: Partial<Record<keyof typeof RIG_MAP, DeformDef>>;
+
 	readonly current = { x: 0, y: 0 };
 	private focus = { x: 0, y: 0, prevX: 0, prevY: 0 };
 
 	constructor(
 		app: PIXI.Application,
-		containers: Partial<Record<keyof typeof RIG_MAP, Container2d[]>>,
+		containers: Record<keyof typeof RIG_MAP, PIXI.Container[]>,
 		strength: number,
 		range: number,
+		{
+			rigMap = RIG_MAP,
+			springPresets = SPRING_PRESETS,
+			deformMap = DEFORM_MAP,
+		}: Partial<KokoroRigOptions> = {},
 	) {
 		this.range = range;
 		this.strength = strength;
+		this.rigMap = rigMap;
+		this.springPresets = springPresets ?? {};
+		this.deformMap = deformMap ?? {};
 		app.ticker.add(() => this.tick());
 		Object.entries(containers).forEach(([k, v]) => {
-			this.add(k as keyof typeof RIG_MAP, v);
+			if (v) this.add(k as keyof typeof RIG_MAP, v);
 		});
 	}
 
@@ -152,20 +160,8 @@ export class KokoroRig {
 		this.focus.y = y;
 	}
 
-	private add(key: keyof typeof RIG_MAP, containers: Container2d[]) {
-		const pivot = DEFAULT_PIVOTS[key];
-		const springOpts = SPRING_PRESETS[key];
-
-		for (const container of containers) {
-			if (pivot || springOpts) {
-				const b = container.getLocalBounds();
-				container.pivot.set(
-					b.x + b.width * (pivot?.rx ?? 0),
-					b.y + b.height * (pivot?.ry ?? 0),
-				);
-			}
-		}
-
+	private add(key: keyof typeof RIG_MAP, containers: PIXI.Container[]) {
+		const springOpts = this.springPresets[key];
 		let spring: SpringState | null = null;
 		if (springOpts) {
 			const state: SpringState = {
@@ -181,16 +177,17 @@ export class KokoroRig {
 			state.x.start();
 			spring = state;
 		}
-
 		this.layers.push({ containers, key, spring });
 	}
 
 	private tick() {
 		this.current.x += this.focus.x - this.current.x;
 		this.current.y += this.focus.y - this.current.y;
-
 		for (const { containers, spring, key } of this.layers) {
-			const { depth } = RIG_MAP[key];
+			const rigEntry = this.rigMap[key];
+			if (!rigEntry) continue;
+
+			const { depth } = rigEntry;
 			const px = Math.max(
 				-this.range,
 				Math.min(this.range, this.current.x * this.strength * depth),
@@ -201,15 +198,15 @@ export class KokoroRig {
 			);
 
 			for (const container of containers) {
-				container.x = px + container.pivot.x;
-				container.y = py + container.pivot.y;
+				container.x = px;
+				container.y = py;
 
 				if (spring) {
 					spring.x.updateConfig({ fromValue: spring.valX, toValue: px });
-					container.skew.x = (spring.valX - px) * 0.002;
+					container.skew.x = (spring.valX - px) * 0.005;
 				}
 
-				const deformDef = DEFORM_MAP[key];
+				const deformDef = this.deformMap[key];
 				if (deformDef) {
 					const d = resolveDeform(deformDef, this.current.x, this.current.y);
 					container.x += d.x ?? 0;
