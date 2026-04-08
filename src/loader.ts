@@ -52,10 +52,14 @@ export async function getPSDIndex(url: string, skip: Set<string> = new Set()) {
 
 export function drawCharacter(layers: PSDIndex[]) {
 	const nodes: SpriteNode[] = [];
-	let lastSprite: PIXI.Sprite | null = null;
+	let lastSprite: PIXI.MeshPlane | null = null;
 
 	for (const layer of layers) {
-		const sprite = new PIXI.Sprite(PIXI.Texture.from(layer.canvas));
+		const sprite = new PIXI.MeshPlane({
+			texture: PIXI.Texture.from(layer.canvas),
+			verticesX: 5,
+			verticesY: 5,
+		});
 		sprite.x = layer.x;
 		sprite.y = layer.y;
 
