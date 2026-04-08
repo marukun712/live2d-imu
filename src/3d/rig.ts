@@ -43,7 +43,7 @@ export class KokoroRig<
 		this.current.x += (this.focus.x - this.current.x) * 0.1;
 		this.current.y += (this.focus.y - this.current.y) * 0.1;
 
-		this.camera.position.x = -this.current.x * this.range * 0.7;
+		this.camera.position.x = -this.current.x * this.range * 0.8;
 		this.camera.lookAt(0, 0, 0);
 
 		for (const [key, meshes] of Object.entries(this.meshGroups) as [

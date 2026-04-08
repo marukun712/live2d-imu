@@ -63,7 +63,7 @@ const FOV = 30;
 		hairFront: { depth: 7 },
 		hairSide: { depth: 6 },
 		hairBack: { depth: 3 },
-		legs: { depth: 0, move: 0 },
+		legs: { depth: 0, move: 0.5 },
 		body: { depth: 3 },
 		chest: { depth: 4 },
 		forearmL: { depth: 3 },
