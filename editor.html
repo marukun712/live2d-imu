@@ -3,142 +3,63 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Mesh Editor</title>
+  <title>Editor</title>
   <style>
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
     }
 
     body {
-      background: #111;
-      color: #ddd;
-      font-family: monospace;
       display: flex;
       height: 100vh;
-      overflow: hidden;
+      background: #111;
+      color: #fff;
+      font: 13px sans-serif;
     }
 
     #sidebar {
-      width: 220px;
-      min-width: 220px;
-      padding: 10px;
+      width: 160px;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      border-right: 1px solid #2a2a2a;
+      padding: 12px;
+      border-right: 1px solid #333;
       overflow-y: auto;
+    }
+
+    #groupList {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #groupList button {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 5px 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    #groupList button.active {
+      background: #005f8f;
+      border-color: #00ccff;
     }
 
     #main {
       flex: 1;
-      overflow: hidden;
-    }
-
-    button {
-      background: #252525;
-      color: #ccc;
-      border: 1px solid #3a3a3a;
-      padding: 5px 8px;
-      cursor: pointer;
-      width: 100%;
-      font-family: monospace;
-      font-size: 12px;
-    }
-
-    button:hover {
-      background: #333;
-    }
-
-    button.active {
-      background: #1a3a5a;
-      border-color: #0af;
-      color: #0cf;
-    }
-
-    input[type=file] {
-      font-size: 11px;
-      color: #aaa;
-      width: 100%;
-    }
-
-    input[type=text] {
-      background: #1a1a1a;
-      color: #ddd;
-      border: 1px solid #333;
-      padding: 4px 6px;
-      width: 100%;
-      font-family: monospace;
-      font-size: 12px;
-    }
-
-    label {
-      font-size: 11px;
-      color: #666;
-    }
-
-    hr {
-      border: none;
-      border-top: 1px solid #222;
-    }
-
-    .pose-item {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      font-size: 11px;
-    }
-
-    .pose-item span {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-      color: #8cf;
-    }
-
-    .pose-item span:hover {
-      color: #adf;
-    }
-
-    .pose-item button {
-      width: auto;
-      padding: 2px 6px;
-    }
-
-    #output {
-      font-size: 10px;
-      background: #0a0a0a;
-      border: 1px solid #222;
-      padding: 6px;
-      overflow: auto;
-      max-height: 160px;
-      white-space: pre;
-      color: #8f8;
-      flex-shrink: 0;
-      user-select: all;
     }
   </style>
 </head>
 
 <body>
   <div id="sidebar">
-    <label>PSD</label>
     <input type="file" id="fileInput" accept=".psd" />
-    <hr />
-    <label>Groups</label>
     <div id="groupList"></div>
-    <button type="button" id="resetBtn">Reset vertices</button>
-    <hr />
-    <label>Pose name</label>
-    <input type="text" id="poseNameInput" placeholder="e.g. look_left" />
-    <button type="button" id="savePoseBtn">Save pose</button>
-    <div id="poseList"></div>
-    <hr />
-    <button type="button" id="exportBtn">Export JSON</button>
-    <pre id="output"></pre>
   </div>
   <div id="main"></div>
   <script type="module" src="/src/editor.ts"></script>

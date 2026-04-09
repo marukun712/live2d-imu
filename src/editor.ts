@@ -4,11 +4,13 @@ import { Viewport } from "pixi-viewport";
 import {
 	byName,
 	drawCharacter,
-	getPSDIndex,
 	groupNodes,
 	pipe,
 	psdGroup,
+	type SpriteNode,
+	walkPSD,
 } from "./loader";
+import type { BONE_NAME } from "./rig";
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
@@ -18,6 +20,7 @@ const SKIP = new Set([
 	"表情見本",
 	"透かし見本",
 ]);
+
 const GROUP_DEFS = {
 	head: pipe(psdGroup("顔"), psdGroup("耳")),
 	eyeL: psdGroup("瞳L"),
@@ -38,44 +41,40 @@ const GROUP_DEFS = {
 	hairBack: psdGroup("後ろ髪"),
 } as const;
 
-const GRID_PER_GROUP: Partial<Record<keyof typeof GROUP_DEFS, number>> = {
-	body: 6,
-	legs: 6,
-};
-const DEFAULT_GRID = 3;
 const SCENE_SCALE = 0.1;
-const HANDLE_PX = 6;
+const HANDLE_PX = 5;
 
 const fileInput = document.getElementById("fileInput") as HTMLInputElement;
 const groupListEl = document.getElementById("groupList") as HTMLDivElement;
-const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
-const savePoseBtn = document.getElementById("savePoseBtn") as HTMLButtonElement;
-const poseNameInput = document.getElementById(
-	"poseNameInput",
-) as HTMLInputElement;
-const poseListEl = document.getElementById("poseList") as HTMLDivElement;
-const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
-const outputEl = document.getElementById("output") as HTMLPreElement;
 const mainEl = document.getElementById("main") as HTMLDivElement;
 
-type GroupKey = keyof typeof GROUP_DEFS;
-type VRef = { buf: PIXI.Buffer; data: Float32Array; i: number };
-
-let grouped: Partial<Record<GroupKey, PIXI.Container>> = {};
-let baseVertsMap = new Map<PIXI.Buffer, Float32Array>();
-let baseBoundsMap = new Map<string, { gw: number; gh: number }>();
+let nodes: SpriteNode[] = [];
+let verts: number[] = [];
+let idx: Record<BONE_NAME, { start: number; end: number }> = {} as never;
+let nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
 let activeHandles: PIXI.Graphics[] = [];
-let selectedGroupKey: string | null = null;
-const poses: Record<string, Record<string, number[][]>> = {};
 
-function getMeshes(c: PIXI.Container): PIXI.MeshPlane[] {
-	const out: PIXI.MeshPlane[] = [];
-	function walk(node: PIXI.ContainerChild) {
-		if (node instanceof PIXI.MeshPlane) out.push(node);
-		else if (node instanceof PIXI.Container) node.children.forEach(walk);
+function applyVerts() {
+	for (const node of nodes) {
+		const r = nodeRanges.get(node);
+		if (!r) continue;
+		const buf = node.sprite.geometry.getBuffer("aPosition");
+		const data = buf.data as Float32Array;
+		for (let i = 0; i < r.end - r.start; i++) data[i] = verts[r.start + i]!;
+		buf.update();
 	}
-	c.children.forEach(walk);
-	return out;
+}
+
+function vertWorldPos(vi: number): { wx: number; wy: number } {
+	for (const node of nodes) {
+		const r = nodeRanges.get(node);
+		if (!r || vi < r.start || vi >= r.end) continue;
+		return {
+			wx: SCENE_SCALE * (node.sprite.x + verts[vi]!),
+			wy: SCENE_SCALE * (node.sprite.y + verts[vi + 1]!),
+		};
+	}
+	return { wx: 0, wy: 0 };
 }
 
 (async () => {
@@ -99,9 +98,6 @@ function getMeshes(c: PIXI.Container): PIXI.MeshPlane[] {
 	});
 	app.stage.addChild(viewport);
 	viewport.drag().pinch().wheel();
-	window.addEventListener("resize", () =>
-		viewport.resize(mainEl.clientWidth, mainEl.clientHeight),
-	);
 
 	app.ticker.add(() => {
 		const s = HANDLE_PX / viewport.scale.x;
@@ -116,70 +112,23 @@ function getMeshes(c: PIXI.Container): PIXI.MeshPlane[] {
 		activeHandles = [];
 	}
 
-	function selectGroup(key: string) {
-		selectedGroupKey = key;
+	function selectGroup(key: BONE_NAME) {
 		clearHandles();
-		renderGroupList();
-		const container = grouped[key as GroupKey];
-		if (!container) return;
-		const meshes = getMeshes(container);
-		if (!meshes.length) return;
+		groupListEl
+			.querySelectorAll("button")
+			.forEach((b) => b.classList.toggle("active", b.textContent === key));
 
-		const grid = GRID_PER_GROUP[key as GroupKey] ?? DEFAULT_GRID;
-		const allVerts: (VRef & { wx: number; wy: number })[] = [];
-
-		for (const mesh of meshes) {
-			const buf = mesh.geometry.getBuffer("aPosition");
-			const data = buf.data as Float32Array;
-			for (let i = 0; i < data.length; i += 2) {
-				allVerts.push({
-					buf,
-					data,
-					i,
-					wx: SCENE_SCALE * (mesh.x + data[i]!),
-					wy: SCENE_SCALE * (mesh.y + data[i + 1]!),
-				});
-			}
-		}
-
-		const xs = allVerts.map((v) => v.wx);
-		const ys = allVerts.map((v) => v.wy);
-		const x0 = Math.min(...xs),
-			x1 = Math.max(...xs);
-		const y0 = Math.min(...ys),
-			y1 = Math.max(...ys);
-		const uniqueBufs = new Set(allVerts.map((v) => v.buf));
-		const handleVerts: (VRef & { wx: number; wy: number })[][] = Array.from(
-			{ length: grid * grid },
-			() => [],
-		);
-
-		for (const v of allVerts) {
-			let nearest = 0,
-				minDist = Infinity;
-			for (let hi = 0; hi < grid * grid; hi++) {
-				const hx = x0 + ((x1 - x0) * (hi % grid)) / (grid - 1);
-				const hy = y0 + ((y1 - y0) * Math.floor(hi / grid)) / (grid - 1);
-				const d = (v.wx - hx) ** 2 + (v.wy - hy) ** 2;
-				if (d < minDist) {
-					minDist = d;
-					nearest = hi;
-				}
-			}
-			handleVerts[nearest]?.push(v);
-		}
-
-		for (let hi = 0; hi < grid * grid; hi++) {
-			const verts = handleVerts[hi]!;
-			const hx = x0 + ((x1 - x0) * (hi % grid)) / (grid - 1);
-			const hy = y0 + ((y1 - y0) * Math.floor(hi / grid)) / (grid - 1);
+		const { start, end } = idx[key];
+		for (let vi = start; vi < end; vi += 2) {
+			const { wx, wy } = vertWorldPos(vi);
 			const g = new PIXI.Graphics()
 				.circle(0, 0, 1)
 				.fill({ color: 0x00ccff, alpha: 0.9 });
-			g.x = hx;
-			g.y = hy;
+			g.x = wx;
+			g.y = wy;
 			g.eventMode = "static";
 			g.cursor = "pointer";
+			const capturedVi = vi;
 			g.on("pointerdown", (e: PIXI.FederatedPointerEvent) => {
 				e.stopPropagation();
 				viewport.plugins.pause("drag");
@@ -189,11 +138,9 @@ function getMeshes(c: PIXI.Container): PIXI.MeshPlane[] {
 					const dx = (pos.x - prev.x) / SCENE_SCALE;
 					const dy = (pos.y - prev.y) / SCENE_SCALE;
 					prev = pos;
-					for (const v of verts) {
-						v.data[v.i] += dx;
-						v.data[v.i + 1] += dy;
-					}
-					for (const buf of uniqueBufs) buf.update();
+					verts[capturedVi]! += dx;
+					verts[capturedVi + 1]! += dy;
+					applyVerts();
 					g.x += dx * SCENE_SCALE;
 					g.y += dy * SCENE_SCALE;
 				};
@@ -210,156 +157,30 @@ function getMeshes(c: PIXI.Container): PIXI.MeshPlane[] {
 		}
 	}
 
-	async function loadCharacter(url: string) {
-		viewport.removeChildren();
-		clearHandles();
-		grouped = {};
-		baseVertsMap = new Map();
-		baseBoundsMap = new Map();
-		selectedGroupKey = null;
-
-		const index = await getPSDIndex(url, SKIP);
-		const spriteNodes = drawCharacter(index);
-		grouped = groupNodes(spriteNodes, GROUP_DEFS);
-
-		const root = new PIXI.Container();
-		for (const container of Object.values(grouped)) root.addChild(container);
-		for (const node of spriteNodes) {
-			if (!node.container.parent) root.addChild(node.container);
-		}
-		root.scale.set(SCENE_SCALE);
-		viewport.addChild(root);
-
-		for (const [key, container] of Object.entries(grouped) as [
-			GroupKey,
-			PIXI.Container,
-		][]) {
-			const wx: number[] = [],
-				wy: number[] = [];
-			for (const mesh of getMeshes(container)) {
-				const buf = mesh.geometry.getBuffer("aPosition");
-				const bv = Float32Array.from(buf.data as Float32Array);
-				baseVertsMap.set(buf, bv);
-				for (let i = 0; i < bv.length; i += 2) {
-					wx.push(mesh.x + bv[i]!);
-					wy.push(mesh.y + bv[i + 1]!);
-				}
-			}
-			baseBoundsMap.set(key, {
-				gw: Math.max(...wx) - Math.min(...wx) || 1,
-				gh: Math.max(...wy) - Math.min(...wy) || 1,
-			});
-		}
-
-		renderGroupList();
-		viewport.fit();
-	}
-
-	resetBtn.addEventListener("click", () => {
-		if (!selectedGroupKey) return;
-		const container = grouped[selectedGroupKey as GroupKey];
-		if (!container) return;
-		for (const mesh of getMeshes(container)) {
-			const buf = mesh.geometry.getBuffer("aPosition");
-			const data = buf.data as Float32Array;
-			const bv = baseVertsMap.get(buf);
-			if (!bv) continue;
-			data.set(bv);
-			buf.update();
-		}
-		selectGroup(selectedGroupKey);
-	});
-
-	savePoseBtn.addEventListener("click", () => {
-		const name = poseNameInput.value.trim();
-		if (!name) return;
-		const snapshot: Record<string, number[][]> = {};
-		for (const [key, container] of Object.entries(grouped) as [
-			GroupKey,
-			PIXI.Container,
-		][]) {
-			const meshes = getMeshes(container);
-			if (!meshes.length) continue;
-			const { gw, gh } = baseBoundsMap.get(key) ?? { gw: 1, gh: 1 };
-			snapshot[key] = meshes.map((mesh) => {
-				const buf = mesh.geometry.getBuffer("aPosition");
-				const data = buf.data as Float32Array;
-				const bv = baseVertsMap.get(buf)!;
-				const arr: number[] = [];
-				for (let i = 0; i < data.length; i += 2) {
-					arr.push((data[i]! - bv[i]!) / gw, (data[i + 1]! - bv[i + 1]!) / gh);
-				}
-				return arr;
-			});
-		}
-		poses[name] = snapshot;
-		poseNameInput.value = "";
-		renderPoseList();
-	});
-
-	function applyPose(name: string) {
-		const snapshot = poses[name];
-		if (!snapshot) return;
-		for (const [key, meshOffsets] of Object.entries(snapshot)) {
-			const container = grouped[key as GroupKey];
-			if (!container) continue;
-			const { gw, gh } = baseBoundsMap.get(key) ?? { gw: 1, gh: 1 };
-			getMeshes(container).forEach((mesh, mi) => {
-				const arr = meshOffsets[mi];
-				if (!arr) return;
-				const buf = mesh.geometry.getBuffer("aPosition");
-				const data = buf.data as Float32Array;
-				const bv = baseVertsMap.get(buf)!;
-				for (let i = 0; i < data.length; i += 2) {
-					data[i] = bv[i]! + arr[i]! * gw;
-					data[i + 1] = bv[i + 1]! + arr[i + 1]! * gh;
-				}
-				buf.update();
-			});
-		}
-		if (selectedGroupKey) selectGroup(selectedGroupKey);
-	}
-
-	function renderGroupList() {
-		groupListEl.innerHTML = "";
-		for (const key of Object.keys(grouped)) {
-			const btn = document.createElement("button");
-			btn.textContent = key;
-			if (key === selectedGroupKey) btn.classList.add("active");
-			btn.onclick = () => selectGroup(key);
-			groupListEl.appendChild(btn);
-		}
-	}
-
-	function renderPoseList() {
-		poseListEl.innerHTML = "";
-		for (const name of Object.keys(poses)) {
-			const div = document.createElement("div");
-			div.className = "pose-item";
-			const span = document.createElement("span");
-			span.textContent = name;
-			span.title = name;
-			span.onclick = () => applyPose(name);
-			const delBtn = document.createElement("button");
-			delBtn.textContent = "×";
-			delBtn.onclick = () => {
-				delete poses[name];
-				renderPoseList();
-			};
-			div.append(span, delBtn);
-			poseListEl.appendChild(div);
-		}
-	}
-
-	exportBtn.addEventListener("click", () => {
-		outputEl.textContent = JSON.stringify(poses, null, 2);
-	});
-
 	fileInput.addEventListener("change", async () => {
 		const file = fileInput.files?.[0];
 		if (!file) return;
 		const url = URL.createObjectURL(file);
-		await loadCharacter(url);
+		viewport.removeChildren();
+		clearHandles();
+
+		const layers = await walkPSD(url, SKIP);
+		nodes = drawCharacter(layers);
+		({ verts, idx, nodeRanges } = groupNodes(nodes, GROUP_DEFS));
+
+		const root = new PIXI.Container();
+		for (const node of nodes) root.addChild(node.container);
+		root.scale.set(SCENE_SCALE);
+		viewport.addChild(root);
+		viewport.fit();
 		URL.revokeObjectURL(url);
+
+		groupListEl.innerHTML = "";
+		for (const key of Object.keys(idx) as BONE_NAME[]) {
+			const btn = document.createElement("button");
+			btn.textContent = key;
+			btn.onclick = () => selectGroup(key);
+			groupListEl.appendChild(btn);
+		}
 	});
 })();
