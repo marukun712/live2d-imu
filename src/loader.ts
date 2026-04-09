@@ -1,5 +1,6 @@
 import { type Layer, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
+import type { BONE_NAME } from "./rig";
 
 export interface PSDIndex {
 	name: string;
@@ -14,12 +15,13 @@ export interface SpriteNode {
 	name: string;
 	path: string[];
 	container: PIXI.Container;
+	sprite: PIXI.MeshPlane;
 }
 
 export type GroupMatcher = (node: SpriteNode) => boolean;
-export type GroupMap<T extends string> = Record<T, GroupMatcher>;
+export type GroupMap = Record<BONE_NAME, GroupMatcher>;
 
-export async function getPSDIndex(url: string, skip: Set<string> = new Set()) {
+export async function walkPSD(url: string, skip: Set<string> = new Set()) {
 	const res = await fetch(url);
 	const psd = readPsd(await res.arrayBuffer());
 
@@ -47,6 +49,7 @@ export async function getPSDIndex(url: string, skip: Set<string> = new Set()) {
 	psd.children?.forEach((l) => {
 		walk(l, []);
 	});
+
 	return result;
 }
 
@@ -71,11 +74,11 @@ export function drawCharacter(layers: PSDIndex[]) {
 			container.addChild(mask);
 			sprite.mask = mask;
 			container.addChild(sprite);
-			nodes.push({ name: layer.name, path: layer.path, container });
+			nodes.push({ name: layer.name, path: layer.path, container, sprite });
 		} else {
 			const container = new PIXI.Container();
 			container.addChild(sprite);
-			nodes.push({ name: layer.name, path: layer.path, container });
+			nodes.push({ name: layer.name, path: layer.path, container, sprite });
 		}
 
 		lastSprite = sprite;
@@ -84,19 +87,28 @@ export function drawCharacter(layers: PSDIndex[]) {
 	return nodes;
 }
 
-export function groupNodes<T extends string>(
-	nodes: SpriteNode[],
-	map: GroupMap<T>,
-): Record<T, PIXI.Container> {
-	const result = {} as Record<T, PIXI.Container>;
-	for (const [key, match] of Object.entries(map) as [T, GroupMatcher][]) {
-		const container = new PIXI.Container();
-		nodes.filter(match).forEach((n) => {
-			container.addChild(n.container);
-		});
-		if (container.children.length > 0) result[key as T] = container;
+export function groupNodes(nodes: SpriteNode[], map: GroupMap) {
+	const idx = {} as Record<BONE_NAME, { start: number; end: number }>;
+	const verts: number[] = [];
+	const nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
+
+	for (const [key, match] of Object.entries(map) as [
+		BONE_NAME,
+		GroupMatcher,
+	][]) {
+		const matched = nodes.filter(match);
+		const start = verts.length;
+
+		for (const n of matched) {
+			const s = verts.length;
+			verts.push(...n.sprite.geometry.getBuffer("aPosition").data);
+			nodeRanges.set(n, { start: s, end: verts.length });
+		}
+
+		idx[key] = { start, end: verts.length };
 	}
-	return result;
+
+	return { verts, idx, nodeRanges };
 }
 
 export function byName(name: string): GroupMatcher {

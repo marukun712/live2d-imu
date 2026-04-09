@@ -4,10 +4,10 @@ import { Viewport } from "pixi-viewport";
 import {
 	byName,
 	drawCharacter,
-	getPSDIndex,
 	groupNodes,
 	pipe,
 	psdGroup,
+	walkPSD,
 } from "./loader";
 import { KokoroRig } from "./rig";
 
@@ -29,12 +29,10 @@ const SKIP = new Set([
 	});
 
 	const app = new PIXI.Application();
-
 	await app.init({
 		resizeTo: window,
 		backgroundColor: 0xffffff,
 	});
-
 	document.body.appendChild(app.canvas);
 
 	const viewport = new Viewport({
@@ -44,22 +42,18 @@ const SKIP = new Set([
 		worldHeight: 1000,
 		events: app.renderer.events,
 	});
-
 	app.stage.addChild(viewport);
-
 	viewport.drag().pinch().wheel();
 
-	const index = await getPSDIndex("/models/character.psd", SKIP);
+	const index = await walkPSD("/models/character.psd", SKIP);
 	const nodes = drawCharacter(index);
-
-	console.log(index.map((n) => n.path.join(" > ")));
 
 	const root = new PIXI.Container();
 	for (const node of nodes) root.addChild(node.container);
 	root.scale.set(0.1);
 	viewport.addChild(root);
 
-	const containers = groupNodes(nodes, {
+	const { verts, idx, nodeRanges } = groupNodes(nodes, {
 		head: pipe(psdGroup("顔"), psdGroup("耳")),
 		eyeL: psdGroup("瞳L"),
 		eyeR: psdGroup("瞳"),
@@ -79,11 +73,5 @@ const SKIP = new Set([
 		hairBack: psdGroup("後ろ髪"),
 	});
 
-	const rig = new KokoroRig(app, containers, 400, 200);
-
-	window.addEventListener("pointermove", (e: PointerEvent) => {
-		const cx = window.innerWidth / 2;
-		const cy = window.innerHeight / 2;
-		rig.setFocus((e.clientX - cx) / cx, (e.clientY - cy) / cy);
-	});
+	new KokoroRig(app, nodes, verts, idx, nodeRanges);
 })();
