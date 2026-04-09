@@ -87,11 +87,14 @@ export function drawCharacter(layers: PSDIndex[]) {
 export function groupNodes<T extends string>(
 	nodes: SpriteNode[],
 	map: GroupMap<T>,
-): Record<T, PIXI.Container[]> {
-	const result = {} as Record<T, PIXI.Container[]>;
+): Record<T, PIXI.Container> {
+	const result = {} as Record<T, PIXI.Container>;
 	for (const [key, match] of Object.entries(map) as [T, GroupMatcher][]) {
-		const matched = nodes.filter(match).map((n) => n.container);
-		if (matched.length > 0) result[key as T] = matched;
+		const container = new PIXI.Container();
+		nodes.filter(match).forEach((n) => {
+			container.addChild(n.container);
+		});
+		if (container.children.length > 0) result[key as T] = container;
 	}
 	return result;
 }

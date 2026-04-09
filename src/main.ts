@@ -60,7 +60,7 @@ const SKIP = new Set([
 	viewport.addChild(root);
 
 	const containers = groupNodes(nodes, {
-		head: pipe(psdGroup("帽子"), psdGroup("顔"), psdGroup("耳")),
+		head: pipe(psdGroup("顔"), psdGroup("耳")),
 		eyeL: psdGroup("瞳L"),
 		eyeR: psdGroup("瞳"),
 		body: pipe(
@@ -69,16 +69,14 @@ const SKIP = new Set([
 			(n) => ["袖L1", "袖L2", "袖影L"].includes(n.name),
 			(n) => ["袖R1", "袖R2", "袖影R"].includes(n.name),
 		),
-		forearmL: byName("前腕L"),
+		forearmL: pipe(byName("前腕L"), psdGroup("手L")),
 		upperArmL: byName("上腕L"),
-		forearmR: byName("前腕R"),
+		forearmR: pipe(byName("前腕R"), psdGroup("手R")),
 		upperArmR: byName("上腕R"),
 		legs: psdGroup("脚"),
 		hairFront: psdGroup("前髪"),
 		hairSide: psdGroup("前髪サイド"),
 		hairBack: psdGroup("後ろ髪"),
-		handL: psdGroup("手L"),
-		handR: psdGroup("手R"),
 	});
 
 	const rig = new KokoroRig(app, containers, 400, 200);

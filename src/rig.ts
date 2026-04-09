@@ -13,13 +13,11 @@ export const RIG_MAP = {
 	hairFront: { depth: 0.63 },
 	hairSide: { depth: 0.51 },
 	hairBack: { depth: 0.46 },
-	handL: { depth: 0.24 },
-	handR: { depth: 0.24 },
 } as const;
 
 interface ParallaxLayer {
 	key: keyof typeof RIG_MAP;
-	containers: PIXI.Container[];
+	container: PIXI.Container;
 }
 
 type RigMapValue = { depth: number };
@@ -41,7 +39,7 @@ export class KokoroRig {
 
 	constructor(
 		app: PIXI.Application,
-		containers: Record<keyof typeof RIG_MAP, PIXI.Container[]>,
+		containers: Record<keyof typeof RIG_MAP, PIXI.Container>,
 		strength: number,
 		range: number,
 		{ rigMap = RIG_MAP }: Partial<KokoroRigOptions> = {},
@@ -62,12 +60,10 @@ export class KokoroRig {
 		this.focus.y = y;
 	}
 
-	private add(key: keyof typeof RIG_MAP, containers: PIXI.Container[]) {
-		for (const container of containers) {
-			const b = container.getLocalBounds();
-			container.pivot.set(b.x + b.width / 2, b.y + b.height / 2);
-		}
-		this.layers.push({ key, containers });
+	private add(key: keyof typeof RIG_MAP, container: PIXI.Container) {
+		const b = container.getLocalBounds();
+		container.pivot.set(b.x + b.width / 2, b.y + b.height / 2);
+		this.layers.push({ key, container });
 	}
 
 	private tick() {
@@ -75,7 +71,7 @@ export class KokoroRig {
 		this.current.x += (this.focus.x - this.current.x) * 0.1;
 		this.current.y += (this.focus.y - this.current.y) * 0.1;
 
-		for (const { containers, key } of this.layers) {
+		for (const { container, key } of this.layers) {
 			const rigEntry = this.rigMap[key];
 			if (!rigEntry) continue;
 
@@ -89,24 +85,22 @@ export class KokoroRig {
 				Math.min(this.range, this.current.y * this.strength * depth),
 			);
 
-			for (const container of containers) {
-				container.x = px + container.pivot.x;
-				container.y = py + container.pivot.y;
-				container.scale.set(1);
-				container.skew.set(0);
+			container.x = px + container.pivot.x;
+			container.y = py + container.pivot.y;
+			container.scale.set(1);
+			container.skew.set(0);
 
-				if (key.startsWith("hair")) {
-					const plane = container.children[
-						container.children.length - 1
-					] as PIXI.MeshPlane;
-					const buffer = plane.geometry.getBuffer("aPosition");
+			if (key.startsWith("hair")) {
+				const plane = container.children[
+					container.children.length - 1
+				] as PIXI.MeshPlane;
+				const buffer = plane.geometry.getBuffer("aPosition");
 
-					for (let i = 0; i < buffer.data.length; i += 2) {
-						const w = i / buffer.data.length;
-						buffer.data[i] += Math.sin(this.time - w * 5) * w * 0.5;
-					}
-					buffer.update();
+				for (let i = 0; i < buffer.data.length; i += 2) {
+					const w = i / buffer.data.length;
+					buffer.data[i] += Math.sin(this.time - w * 5) * w * 0.5;
 				}
+				buffer.update();
 			}
 		}
 	}
