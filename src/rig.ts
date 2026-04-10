@@ -16,13 +16,11 @@ export const BONE_LIST = [
 
 export type BONE_NAME = (typeof BONE_LIST)[number];
 
-type Point = [number, number];
-type GridOffsets = Point | Point[];
+export type Point = [number, number];
+export type GridOffsets = Point | Point[];
+export type Template = Record<string, Partial<Record<BONE_NAME, GridOffsets>>>;
 
-export const POSE_TEMPLATES: Record<
-	string,
-	Partial<Record<BONE_NAME, GridOffsets>>
-> = {
+export const POSE_TEMPLATES: Template = {
 	normal: {},
 	left: {
 		head: [-40, 0],

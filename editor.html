@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kokoro Pose Editor</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.zinc.min.css">
+  <style>
+    body {
+      margin: 0;
+      background: #222
+    }
+
+    textarea {
+      font-family: monospace;
+      font-size: 11px
+    }
+  </style>
+</head>
+
+<body>
+  <main class="grid" style="height:100vh;grid-template-columns:7fr 3fr;">
+    <section id="view"></section>
+    <aside style="overflow-y:auto;">
+      <label>Pose<select id="pose-select"></select></label>
+      <label>Bone<select id="bone-select"></select></label>
+      <svg id="grid-editor" viewBox="-500 -500 1000 1000" role="img" aria-label="grid editor"
+        style="width:100%;height:260px;background:#111;border-radius:8px;">
+        <title>grid editor</title>
+      </svg>
+      <hr>
+      <textarea id="json-out" readonly style="height:200px;"></textarea>
+      <button id="copy-btn" type="button">Copy</button>
+    </aside>
+  </main>
+  <script type="module" src="/src/editor.ts"></script>
+</body>
+
+</html>
