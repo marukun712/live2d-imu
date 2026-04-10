@@ -9,7 +9,7 @@ import {
 	psdGroup,
 	walkPSD,
 } from "./loader";
-import { KokoroRig, POSE_TEMPLATES } from "./rig";
+import { KokoroRig } from "./rig";
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
@@ -19,12 +19,6 @@ const SKIP = new Set([
 	"表情見本",
 	"透かし見本",
 ]);
-
-const mainEl = document.getElementById("main") as HTMLDivElement;
-const templateUI = document.createElement("div");
-templateUI.style.cssText =
-	"position:absolute;top:10px;right:10px;display:flex;gap:5px;z-index:10;";
-mainEl.appendChild(templateUI);
 
 (async () => {
 	initializeCanvas((width, height) => {
@@ -79,11 +73,11 @@ mainEl.appendChild(templateUI);
 
 	const rig = new KokoroRig(app, nodes, verts, idx, nodeRanges);
 
-	templateUI.innerHTML = "";
-	for (const name of Object.keys(POSE_TEMPLATES)) {
-		const btn = document.createElement("button");
-		btn.textContent = name;
-		btn.onclick = () => rig.applyTemplate(name);
-		templateUI.appendChild(btn);
-	}
+	window.addEventListener("pointermove", (e) => {
+		const tx = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
+		const ty = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
+		const move = rig.calcTween("left", "right", tx);
+		const up = rig.calcTween("up", "down", ty);
+		rig.blendTweens([move, up], 1.5);
+	});
 })();

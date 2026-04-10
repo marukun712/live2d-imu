@@ -19,6 +19,7 @@ export type BONE_NAME = (typeof BONE_LIST)[number];
 export type Point = [number, number];
 export type GridOffsets = Point | Point[];
 export type Template = Record<string, Partial<Record<BONE_NAME, GridOffsets>>>;
+export type TweenResult = Record<BONE_NAME, Point[]>;
 
 export const POSE_TEMPLATES: Template = {
 	normal: {},
@@ -38,233 +39,21 @@ export const POSE_TEMPLATES: Template = {
 		body: [20, 0],
 		legs: [10, 0],
 	},
-	tiltLeft: {
-		head: [
-			[-550, 300],
-			[-550, 300],
-			[-550, 300],
-			[-450, 220],
-			[-450, 220],
-			[-450, 220],
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-		],
-		hairFront: [
-			[-570, 310],
-			[-570, 310],
-			[-570, 310],
-			[-460, 230],
-			[-460, 230],
-			[-460, 230],
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-		],
-		hairSide: [
-			[-560, 305],
-			[-560, 305],
-			[-560, 305],
-			[-455, 225],
-			[-455, 225],
-			[-455, 225],
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-		],
-		hairBack: [
-			[-520, 280],
-			[-520, 280],
-			[-520, 280],
-			[-430, 200],
-			[-430, 200],
-			[-430, 200],
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-		],
-
-		body: [
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-			[-220, 80],
-			[-220, 80],
-			[-220, 80],
-			[-120, 30],
-			[-120, 30],
-			[-120, 30],
-		],
-
-		legs: [
-			[-120, 30],
-			[-120, 30],
-			[-120, 30],
-			[-50, 10],
-			[-50, 10],
-			[-50, 10],
-			[0, 0],
-			[0, 0],
-			[0, 0],
-		],
-
-		upperArmL: [
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-			[-290, 120],
-			[-290, 120],
-			[-290, 120],
-			[-240, 90],
-			[-240, 90],
-			[-240, 90],
-		],
-		upperArmR: [
-			[-350, 150],
-			[-350, 150],
-			[-350, 150],
-			[-290, 120],
-			[-290, 120],
-			[-290, 120],
-			[-240, 90],
-			[-240, 90],
-			[-240, 90],
-		],
-		forearmL: [
-			[-240, 90],
-			[-240, 90],
-			[-240, 90],
-			[-180, 60],
-			[-180, 60],
-			[-180, 60],
-			[-130, 40],
-			[-130, 40],
-			[-130, 40],
-		],
-		forearmR: [
-			[-240, 90],
-			[-240, 90],
-			[-240, 90],
-			[-180, 60],
-			[-180, 60],
-			[-180, 60],
-			[-130, 40],
-			[-130, 40],
-			[-130, 40],
-		],
+	up: {
+		head: [0, -40],
+		hairFront: [0, -60],
+		hairSide: [0, -50],
+		hairBack: [0, -30],
+		body: [0, -20],
+		legs: [0, -10],
 	},
-
-	tiltRight: {
-		head: [
-			[550, 300],
-			[550, 300],
-			[550, 300],
-			[450, 220],
-			[450, 220],
-			[450, 220],
-			[350, 150],
-			[350, 150],
-			[350, 150],
-		],
-		hairFront: [
-			[570, 310],
-			[570, 310],
-			[570, 310],
-			[460, 230],
-			[460, 230],
-			[460, 230],
-			[350, 150],
-			[350, 150],
-			[350, 150],
-		],
-		hairSide: [
-			[560, 305],
-			[560, 305],
-			[560, 305],
-			[455, 225],
-			[455, 225],
-			[455, 225],
-			[350, 150],
-			[350, 150],
-			[350, 150],
-		],
-		hairBack: [
-			[520, 280],
-			[520, 280],
-			[520, 280],
-			[430, 200],
-			[430, 200],
-			[430, 200],
-			[350, 150],
-			[350, 150],
-			[350, 150],
-		],
-		body: [
-			[350, 150],
-			[350, 150],
-			[350, 150],
-			[220, 80],
-			[220, 80],
-			[220, 80],
-			[120, 30],
-			[120, 30],
-			[120, 30],
-		],
-		legs: [
-			[120, 30],
-			[120, 30],
-			[120, 30],
-			[50, 10],
-			[50, 10],
-			[50, 10],
-			[0, 0],
-			[0, 0],
-			[0, 0],
-		],
-		upperArmL: [
-			[350, 150],
-			[350, 150],
-			[350, 150],
-			[290, 120],
-			[290, 120],
-			[290, 120],
-			[240, 90],
-			[240, 90],
-			[240, 90],
-		],
-		upperArmR: [
-			[350, 150],
-			[350, 150],
-			[350, 150],
-			[290, 120],
-			[290, 120],
-			[290, 120],
-			[240, 90],
-			[240, 90],
-			[240, 90],
-		],
-		forearmL: [
-			[240, 90],
-			[240, 90],
-			[240, 90],
-			[180, 60],
-			[180, 60],
-			[180, 60],
-			[130, 40],
-			[130, 40],
-			[130, 40],
-		],
-		forearmR: [
-			[240, 90],
-			[240, 90],
-			[240, 90],
-			[180, 60],
-			[180, 60],
-			[180, 60],
-			[130, 40],
-			[130, 40],
-			[130, 40],
-		],
+	down: {
+		head: [0, 40],
+		hairFront: [0, 60],
+		hairSide: [0, 50],
+		hairBack: [0, 30],
+		body: [0, 20],
+		legs: [0, 10],
 	},
 };
 
@@ -304,12 +93,14 @@ export class KokoroRig {
 		>;
 		this.grid = {} as Record<BONE_NAME, Point[]>;
 
+		// 全ノードのx,yを取得して、verts番号と紐づけ
 		for (const node of this.nodes) {
 			const range = this.nodeRanges.get(node);
 			if (!range) continue;
 
 			const ox = (node.sprite.x || 0) + (node.container.x || 0);
 			const oy = (node.sprite.y || 0) + (node.container.y || 0);
+			// 後でずらすときに使う
 			this.nodeOffsets.set(node, { x: ox, y: oy });
 
 			for (let i = range.start; i < range.end; i += 2) {
@@ -318,7 +109,9 @@ export class KokoroRig {
 		}
 
 		for (const bone of BONE_LIST) {
+			// 各ボーンの開始index番号を取得
 			const { start, end } = this.vertsIdx[bone];
+			// 3x3グリッドの初期化
 			this.grid[bone] = Array.from({ length: 9 }, () => [0, 0]);
 
 			if (start === end) continue;
@@ -329,6 +122,7 @@ export class KokoroRig {
 				maxY = -Infinity;
 			let validVertsCount = 0;
 
+			// x,yの最大値をそれぞれ求める(offsetを足してglobal座標に)
 			for (let i = start; i < end; i += 2) {
 				const node = this.vertToNode[i];
 
@@ -346,6 +140,7 @@ export class KokoroRig {
 				validVertsCount++;
 			}
 
+			// 各ボーンの境界線を記録
 			if (validVertsCount > 0) {
 				this.bounds[bone] = { minX, minY, w: maxX - minX, h: maxY - minY };
 			}
@@ -354,36 +149,73 @@ export class KokoroRig {
 		app.ticker.add(() => this.tick());
 	}
 
-	public applyTemplate(name: string) {
-		const tpl = POSE_TEMPLATES[name];
-		if (!tpl) return;
+	public calcTween(from: string, to: string, t: number): TweenResult {
+		const result = {} as TweenResult;
 
 		for (const bone of BONE_LIST) {
-			const val = tpl[bone];
+			const target = Array.from({ length: 9 }, () => [0, 0] as Point);
+			result[bone] = target;
+
+			const tplA = POSE_TEMPLATES[from];
+			const tplB = POSE_TEMPLATES[to];
+
+			const a = tplA?.[bone];
+			const b = tplB?.[bone];
+
+			// 一点または一括で適用
+			for (let i = 0; i < 9; i++) {
+				const ax = !a
+					? 0
+					: typeof a[0] === "number"
+						? (a[0] as number)
+						: (a[i] as Point)[0];
+				const ay = !a
+					? 0
+					: typeof a[0] === "number"
+						? (a[1] as number)
+						: (a[i] as Point)[1];
+				const bx = !b
+					? 0
+					: typeof b[0] === "number"
+						? (b[0] as number)
+						: (b[i] as Point)[0];
+				const by = !b
+					? 0
+					: typeof b[0] === "number"
+						? (b[1] as number)
+						: (b[i] as Point)[1];
+
+				// lerp
+				target[i][0] = ax + (bx - ax) * t;
+				target[i][1] = ay + (by - ay) * t;
+			}
+		}
+
+		return result;
+	}
+
+	// tweenをブレンドする
+	public blendTweens(inputs: TweenResult[], power?: number) {
+		for (const bone of BONE_LIST) {
 			const target = this.grid[bone];
 
-			if (!val) {
-				for (let i = 0; i < 9; i++) {
-					target[i][0] = 0;
-					target[i][1] = 0;
-				}
-				continue;
+			for (let i = 0; i < 9; i++) {
+				target[i][0] = 0;
+				target[i][1] = 0;
 			}
 
-			if (typeof val[0] === "number") {
+			for (const grid of inputs) {
+				const src = grid[bone];
+
 				for (let i = 0; i < 9; i++) {
-					target[i][0] = val[0] as number;
-					target[i][1] = val[1] as number;
-				}
-			} else {
-				for (let i = 0; i < 9; i++) {
-					target[i][0] = (val[i] as Point)[0];
-					target[i][1] = (val[i] as Point)[1];
+					target[i][0] += src[i][0] * (power ?? 1);
+					target[i][1] += src[i][1] * (power ?? 1);
 				}
 			}
 		}
 	}
 
+	// meshの頂点配列をrig内の頂点配列でreplace
 	private applyVerts() {
 		for (const node of this.nodes) {
 			const range = this.nodeRanges.get(node);
@@ -403,32 +235,40 @@ export class KokoroRig {
 
 			if (start === end || !this.bounds[bone]) continue;
 
+			// ボーンの境界を取得
 			const { minX, minY, w, h } = this.bounds[bone];
+			// ボーンのオフセットを取得
 			const offsets = this.grid[bone];
 
 			for (let i = start; i < end; i += 2) {
+				// 初期位置を取得
 				const ox = this.origVerts[i];
 				const oy = this.origVerts[i + 1];
 
+				// 頂点番号からノードを取得
 				const node = this.vertToNode[i];
 
 				if (!node) continue;
 
+				// グローバル座標に変換
 				const offset = this.nodeOffsets.get(node) || { x: 0, y: 0 };
 				const globalX = ox + offset.x;
 				const globalY = oy + offset.y;
 
+				// 0~1にする
 				const u =
 					w === 0 ? 0.5 : Math.max(0, Math.min(1, (globalX - minX) / w));
 				const v =
 					h === 0 ? 0.5 : Math.max(0, Math.min(1, (globalY - minY) / h));
 
+				// ベジエ曲面で重みを求める
 				const wu = [(1 - u) ** 2, 2 * u * (1 - u), u ** 2];
 				const wv = [(1 - v) ** 2, 2 * v * (1 - v), v ** 2];
 
 				let dx = 0;
 				let dy = 0;
 
+				// 各点に重みをかける
 				for (let row = 0; row < 3; row++) {
 					for (let col = 0; col < 3; col++) {
 						const weight = wu[col] * wv[row];
@@ -438,11 +278,13 @@ export class KokoroRig {
 					}
 				}
 
+				// x,yを置き換え
 				this.verts[i] = ox + dx;
 				this.verts[i + 1] = oy + dy;
 			}
 		}
 
+		// 適用
 		this.applyVerts();
 	}
 }
