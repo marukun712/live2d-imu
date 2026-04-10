@@ -39,27 +39,26 @@ const GROUP_DEFS = {
 	hairBack: psdGroup("後ろ髪"),
 };
 
-const POSE_TEMPLATES: Record<string, Partial<Record<BONE_NAME, number[]>>> = {
+const POSE_TEMPLATES: Record<
+	string,
+	Partial<Record<BONE_NAME, [number, number]>>
+> = {
 	normal: {},
 	left: {
-		head: [-20, -15, -80, 15, -20, -15, -80, 15],
-
-		hairFront: [-40, -20, -100, 20, -40, -20, -100, 20],
-		hairSide: [-30, -15, -90, 15, -30, -15, -90, 15],
-		hairBack: [20, 10, 40, -10, 20, 10, 40, -10],
-
-		body: [-15, -10, -60, 10, -15, -10, -60, 10],
-		legs: [-10, 0, -40, 0, -10, 0, -40, 0],
+		head: [-40, 0],
+		hairFront: [-80, 0],
+		hairSide: [-60, 0],
+		hairBack: [40, 0],
+		body: [-20, 0],
+		legs: [-10, 0],
 	},
 	right: {
-		head: [80, -15, 20, 15, 80, -15, 20, 15],
-
-		hairFront: [100, -20, 40, 20, 100, -20, 40, 20],
-		hairSide: [90, -15, 30, 15, 90, -15, 30, 15],
-		hairBack: [-40, 10, -20, -10, -40, 10, -20, -10],
-
-		body: [60, -10, 15, 10, 60, -10, 15, 10],
-		legs: [40, 0, 10, 0, 40, 0, 10, 0],
+		head: [40, 0],
+		hairFront: [80, 0],
+		hairSide: [60, 0],
+		hairBack: [-20, 0],
+		body: [20, 0],
+		legs: [10, 0],
 	},
 };
 
@@ -73,7 +72,6 @@ let verts: number[] = [];
 let idx: Record<BONE_NAME, { start: number; end: number }> = {} as never;
 let nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
 let rig: KokoroRig;
-let originalFfd: Record<BONE_NAME, number[]> = {} as never;
 
 const templateUI = document.createElement("div");
 templateUI.style.cssText =
@@ -104,11 +102,10 @@ mainEl.appendChild(templateUI);
 	function applyTemplate(name: string) {
 		const tpl = POSE_TEMPLATES[name];
 		for (const key of Object.keys(idx) as BONE_NAME[]) {
-			if (!originalFfd[key] || !rig.ffd[key]) continue;
-			const offset = tpl[key] || [0, 0, 0, 0, 0, 0, 0, 0];
-			for (let i = 0; i < 8; i++) {
-				rig.ffd[key][i] = originalFfd[key][i] + offset[i];
-			}
+			if (!rig.offsets[key]) continue;
+			const offset = tpl[key] || [0, 0];
+			rig.offsets[key].x = offset[0];
+			rig.offsets[key].y = offset[1];
 		}
 	}
 
@@ -124,11 +121,6 @@ mainEl.appendChild(templateUI);
 		({ verts, idx, nodeRanges } = groupNodes(nodes, GROUP_DEFS));
 
 		rig = new KokoroRig(app, nodes, verts, idx, nodeRanges);
-
-		originalFfd = {} as never;
-		for (const key of Object.keys(idx) as BONE_NAME[]) {
-			if (rig.ffd[key]) originalFfd[key] = [...rig.ffd[key]];
-		}
 
 		const root = new PIXI.Container();
 		for (const node of nodes) root.addChild(node.container);

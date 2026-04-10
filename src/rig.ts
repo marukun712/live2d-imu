@@ -19,12 +19,16 @@ export type BONE_NAME = (typeof BONE_LIST)[number];
 export class KokoroRig {
 	private readonly nodes: SpriteNode[];
 	private readonly verts: number[];
+	private readonly origVerts: number[];
 	private readonly vertsIdx: Record<BONE_NAME, { start: number; end: number }>;
 	private readonly nodeRanges: Map<SpriteNode, { start: number; end: number }>;
 	private time = 0;
 
-	private readonly uvs: number[];
-	public readonly ffd: Record<BONE_NAME, number[]>;
+	public readonly centers: Record<
+		BONE_NAME,
+		{ x: number; y: number; sigma: number }
+	>;
+	public readonly offsets: Record<BONE_NAME, { x: number; y: number }>;
 
 	constructor(
 		app: PIXI.Application,
@@ -35,11 +39,15 @@ export class KokoroRig {
 	) {
 		this.nodes = nodes;
 		this.verts = verts;
+		this.origVerts = [...verts];
 		this.vertsIdx = vertsIdx;
 		this.nodeRanges = nodeRanges;
 
-		this.uvs = new Array(verts.length).fill(0);
-		this.ffd = {} as Record<BONE_NAME, number[]>;
+		this.centers = {} as Record<
+			BONE_NAME,
+			{ x: number; y: number; sigma: number }
+		>;
+		this.offsets = {} as Record<BONE_NAME, { x: number; y: number }>;
 
 		for (const bone of BONE_LIST) {
 			const { start, end } = this.vertsIdx[bone];
@@ -56,13 +64,12 @@ export class KokoroRig {
 				if (verts[i + 1] > maxY) maxY = verts[i + 1];
 			}
 
-			for (let i = start; i < end; i += 2) {
-				this.uvs[i] = maxX === minX ? 0 : (verts[i] - minX) / (maxX - minX);
-				this.uvs[i + 1] =
-					maxY === minY ? 0 : (verts[i + 1] - minY) / (maxY - minY);
-			}
+			const cX = (minX + maxX) / 2;
+			const cY = (minY + maxY) / 2;
+			const sigma = Math.max(maxX - minX, maxY - minY) || 1;
 
-			this.ffd[bone] = [minX, minY, maxX, minY, minX, maxY, maxX, maxY];
+			this.centers[bone] = { x: cX, y: cY, sigma };
+			this.offsets[bone] = { x: 0, y: 0 };
 		}
 
 		app.ticker.add(() => this.tick());
@@ -86,27 +93,27 @@ export class KokoroRig {
 
 		for (const bone of BONE_LIST) {
 			const { start, end } = this.vertsIdx[bone];
-			if (start === end || !this.ffd[bone]) continue;
+			if (start === end || !this.centers[bone]) continue;
 
-			const f = [...this.ffd[bone]];
+			let dx = this.offsets[bone].x;
+			const dy = this.offsets[bone].y;
 
 			if (bone.startsWith("hair")) {
-				const offset = Math.sin(this.time) * 10;
-				f[4] += offset;
-				f[6] += offset;
+				dx += Math.sin(this.time) * 10;
 			}
 
+			const { x: cX, y: cY, sigma } = this.centers[bone];
+			const sig2 = sigma * sigma;
+
 			for (let i = start; i < end; i += 2) {
-				const u = this.uvs[i];
-				const v = this.uvs[i + 1];
+				const ox = this.origVerts[i];
+				const oy = this.origVerts[i + 1];
 
-				const tX = f[0] + u * (f[2] - f[0]);
-				const tY = f[1] + u * (f[3] - f[1]);
-				const bX = f[4] + u * (f[6] - f[4]);
-				const bY = f[5] + u * (f[7] - f[5]);
+				const d2 = (ox - cX) ** 2 + (oy - cY) ** 2;
+				const w = Math.exp(-d2 / sig2);
 
-				this.verts[i] = tX + v * (bX - tX);
-				this.verts[i + 1] = tY + v * (bY - tY);
+				this.verts[i] = ox + dx * w;
+				this.verts[i + 1] = oy + dy * w;
 			}
 		}
 
