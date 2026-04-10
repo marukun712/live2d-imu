@@ -3,7 +3,10 @@ import type { SpriteNode } from "./loader";
 
 export const BONE_LIST = [
 	"head",
+	"eyeL",
+	"eyeR",
 	"body",
+	"chest",
 	"forearmL",
 	"upperArmL",
 	"forearmR",
@@ -25,34 +28,46 @@ export const POSE_TEMPLATES: Template = {
 	normal: {},
 	left: {
 		head: [-40, 0],
+		eyeL: [-30, 0],
+		eyeR: [-30, 0],
 		hairFront: [-60, 0],
 		hairSide: [-50, 0],
 		hairBack: [30, 0],
 		body: [-20, 0],
+		chest: [-20, 0],
 		legs: [-10, 0],
 	},
 	right: {
 		head: [40, 0],
+		eyeL: [30, 0],
+		eyeR: [30, 0],
 		hairFront: [60, 0],
 		hairSide: [50, 0],
 		hairBack: [-30, 0],
 		body: [20, 0],
+		chest: [20, 0],
 		legs: [10, 0],
 	},
 	up: {
 		head: [0, -40],
+		eyeL: [0, -30],
+		eyeR: [0, -30],
 		hairFront: [0, -60],
 		hairSide: [0, -50],
 		hairBack: [0, -30],
 		body: [0, -20],
+		chest: [0, -20],
 		legs: [0, -10],
 	},
 	down: {
 		head: [0, 40],
+		eyeL: [0, 30],
+		eyeR: [0, 30],
 		hairFront: [0, 60],
 		hairSide: [0, 50],
 		hairBack: [0, 30],
 		body: [0, 20],
+		chest: [0, 20],
 		legs: [0, 10],
 	},
 };
@@ -73,6 +88,11 @@ export class KokoroRig {
 	private readonly vertToNode: SpriteNode[] = [];
 	private readonly nodeOffsets: Map<SpriteNode, { x: number; y: number }> =
 		new Map();
+
+	private lastTweens: TweenResult[] = [];
+
+	private swayTime = 0;
+	private swayAmp = 0;
 
 	constructor(
 		app: PIXI.Application,
@@ -194,6 +214,10 @@ export class KokoroRig {
 		return result;
 	}
 
+	public setPose(tweens: TweenResult[]) {
+		this.lastTweens = tweens;
+	}
+
 	// tweenをブレンドする
 	public blendTweens(inputs: TweenResult[], power?: number) {
 		for (const bone of BONE_LIST) {
@@ -215,6 +239,34 @@ export class KokoroRig {
 		}
 	}
 
+	public updateSway() {
+		this.swayAmp = 1;
+	}
+
+	public calcSway() {
+		this.swayAmp *= 0.97;
+		this.swayTime += 0.06 * this.swayAmp;
+
+		const result = {} as TweenResult;
+		for (const bone of BONE_LIST)
+			result[bone] = Array.from({ length: 9 }, () => [0, 0] as Point);
+
+		for (const bone of ["hairFront", "hairSide", "hairBack"] as BONE_NAME[]) {
+			for (let row = 0; row < 3; row++) {
+				const s =
+					Math.sin(this.swayTime + row * 0.5) *
+					8 *
+					this.swayAmp *
+					(row / 2) ** 1.5;
+				for (let col = 0; col < 3; col++) result[bone][row * 3 + col][0] = s;
+			}
+		}
+		for (let i = 0; i < 9; i++)
+			result.chest[i][1] = Math.sin(this.swayTime * 1.3) * 2 * this.swayAmp;
+
+		return result;
+	}
+
 	// meshの頂点配列をrig内の頂点配列でreplace
 	private applyVerts() {
 		for (const node of this.nodes) {
@@ -230,6 +282,8 @@ export class KokoroRig {
 	}
 
 	private tick() {
+		this.blendTweens([...this.lastTweens, this.calcSway()], 1.5);
+
 		for (const bone of BONE_LIST) {
 			const { start, end } = this.vertsIdx[bone];
 

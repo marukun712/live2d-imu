@@ -54,13 +54,16 @@ const SKIP = new Set([
 	viewport.addChild(root);
 
 	const { verts, idx, nodeRanges } = groupNodes(nodes, {
-		head: pipe(psdGroup("顔"), psdGroup("耳"), psdGroup("瞳L"), psdGroup("瞳")),
+		head: pipe(psdGroup("顔"), psdGroup("耳")),
+		eyeL: psdGroup("瞳L"),
+		eyeR: psdGroup("瞳"),
 		body: pipe(
 			psdGroup("襟裏"),
 			psdGroup("体", ["脚"]),
 			(n) => ["袖L1", "袖L2", "袖影L"].includes(n.name),
 			(n) => ["袖R1", "袖R2", "袖影R"].includes(n.name),
 		),
+		chest: psdGroup("胸"),
 		forearmL: pipe(byName("前腕L"), psdGroup("手L")),
 		upperArmL: byName("上腕L"),
 		forearmR: pipe(byName("前腕R"), psdGroup("手R")),
@@ -76,8 +79,10 @@ const SKIP = new Set([
 	window.addEventListener("pointermove", (e) => {
 		const tx = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
 		const ty = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
-		const move = rig.calcTween("left", "right", tx);
-		const up = rig.calcTween("up", "down", ty);
-		rig.blendTweens([move, up], 1.5);
+		rig.setPose([
+			rig.calcTween("left", "right", tx),
+			rig.calcTween("up", "down", ty),
+		]);
+		rig.updateSway();
 	});
 })();
