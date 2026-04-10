@@ -10,7 +10,7 @@ import {
 	type SpriteNode,
 	walkPSD,
 } from "./loader";
-import type { BONE_NAME } from "./rig";
+import { type BONE_NAME, KokoroRig } from "./rig";
 
 const SKIP = new Set([
 	"背景(インポート時削除)",
@@ -22,9 +22,7 @@ const SKIP = new Set([
 ]);
 
 const GROUP_DEFS = {
-	head: pipe(psdGroup("顔"), psdGroup("耳")),
-	eyeL: psdGroup("瞳L"),
-	eyeR: psdGroup("瞳"),
+	head: pipe(psdGroup("顔"), psdGroup("耳"), psdGroup("瞳L"), psdGroup("瞳")),
 	body: pipe(
 		psdGroup("襟裏"),
 		psdGroup("体", ["脚"]),
@@ -39,43 +37,48 @@ const GROUP_DEFS = {
 	hairFront: psdGroup("前髪"),
 	hairSide: psdGroup("前髪サイド"),
 	hairBack: psdGroup("後ろ髪"),
-} as const;
+};
+
+const POSE_TEMPLATES: Record<string, Partial<Record<BONE_NAME, number[]>>> = {
+	normal: {},
+	left: {
+		head: [-20, -15, -80, 15, -20, -15, -80, 15],
+
+		hairFront: [-40, -20, -100, 20, -40, -20, -100, 20],
+		hairSide: [-30, -15, -90, 15, -30, -15, -90, 15],
+		hairBack: [20, 10, 40, -10, 20, 10, 40, -10],
+
+		body: [-15, -10, -60, 10, -15, -10, -60, 10],
+		legs: [-10, 0, -40, 0, -10, 0, -40, 0],
+	},
+	right: {
+		head: [80, -15, 20, 15, 80, -15, 20, 15],
+
+		hairFront: [100, -20, 40, 20, 100, -20, 40, 20],
+		hairSide: [90, -15, 30, 15, 90, -15, 30, 15],
+		hairBack: [-40, 10, -20, -10, -40, 10, -20, -10],
+
+		body: [60, -10, 15, 10, 60, -10, 15, 10],
+		legs: [40, 0, 10, 0, 40, 0, 10, 0],
+	},
+};
 
 const SCENE_SCALE = 0.1;
-const HANDLE_PX = 5;
 
 const fileInput = document.getElementById("fileInput") as HTMLInputElement;
-const groupListEl = document.getElementById("groupList") as HTMLDivElement;
 const mainEl = document.getElementById("main") as HTMLDivElement;
 
 let nodes: SpriteNode[] = [];
 let verts: number[] = [];
 let idx: Record<BONE_NAME, { start: number; end: number }> = {} as never;
 let nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
-let activeHandles: PIXI.Graphics[] = [];
+let rig: KokoroRig;
+let originalFfd: Record<BONE_NAME, number[]> = {} as never;
 
-function applyVerts() {
-	for (const node of nodes) {
-		const r = nodeRanges.get(node);
-		if (!r) continue;
-		const buf = node.sprite.geometry.getBuffer("aPosition");
-		const data = buf.data as Float32Array;
-		for (let i = 0; i < r.end - r.start; i++) data[i] = verts[r.start + i]!;
-		buf.update();
-	}
-}
-
-function vertWorldPos(vi: number): { wx: number; wy: number } {
-	for (const node of nodes) {
-		const r = nodeRanges.get(node);
-		if (!r || vi < r.start || vi >= r.end) continue;
-		return {
-			wx: SCENE_SCALE * (node.sprite.x + verts[vi]!),
-			wy: SCENE_SCALE * (node.sprite.y + verts[vi + 1]!),
-		};
-	}
-	return { wx: 0, wy: 0 };
-}
+const templateUI = document.createElement("div");
+templateUI.style.cssText =
+	"position:absolute;top:10px;right:10px;display:flex;gap:5px;z-index:10;";
+mainEl.appendChild(templateUI);
 
 (async () => {
 	initializeCanvas((w, h) => {
@@ -88,99 +91,59 @@ function vertWorldPos(vi: number): { wx: number; wy: number } {
 	const app = new PIXI.Application();
 	await app.init({ resizeTo: mainEl, background: 0x111111, antialias: true });
 	mainEl.appendChild(app.canvas as HTMLCanvasElement);
-	app.stage.eventMode = "static";
-	app.stage.hitArea = app.screen;
 
 	const viewport = new Viewport({
 		screenWidth: mainEl.clientWidth,
 		screenHeight: mainEl.clientHeight,
 		events: app.renderer.events,
 	});
-	app.stage.addChild(viewport);
+
 	viewport.drag().pinch().wheel();
+	app.stage.addChild(viewport);
 
-	app.ticker.add(() => {
-		const s = HANDLE_PX / viewport.scale.x;
-		for (const h of activeHandles) h.scale.set(s);
-	});
-
-	function clearHandles() {
-		for (const h of activeHandles) {
-			viewport.removeChild(h);
-			h.destroy();
-		}
-		activeHandles = [];
-	}
-
-	function selectGroup(key: BONE_NAME) {
-		clearHandles();
-		groupListEl
-			.querySelectorAll("button")
-			.forEach((b) => b.classList.toggle("active", b.textContent === key));
-
-		const { start, end } = idx[key];
-		for (let vi = start; vi < end; vi += 2) {
-			const { wx, wy } = vertWorldPos(vi);
-			const g = new PIXI.Graphics()
-				.circle(0, 0, 1)
-				.fill({ color: 0x00ccff, alpha: 0.9 });
-			g.x = wx;
-			g.y = wy;
-			g.eventMode = "static";
-			g.cursor = "pointer";
-			const capturedVi = vi;
-			g.on("pointerdown", (e: PIXI.FederatedPointerEvent) => {
-				e.stopPropagation();
-				viewport.plugins.pause("drag");
-				let prev = e.getLocalPosition(viewport);
-				const onMove = (ev: PIXI.FederatedPointerEvent) => {
-					const pos = ev.getLocalPosition(viewport);
-					const dx = (pos.x - prev.x) / SCENE_SCALE;
-					const dy = (pos.y - prev.y) / SCENE_SCALE;
-					prev = pos;
-					verts[capturedVi]! += dx;
-					verts[capturedVi + 1]! += dy;
-					applyVerts();
-					g.x += dx * SCENE_SCALE;
-					g.y += dy * SCENE_SCALE;
-				};
-				const onUp = () => {
-					viewport.plugins.resume("drag");
-					app.stage.off("pointermove", onMove);
-					app.stage.off("pointerup", onUp);
-				};
-				app.stage.on("pointermove", onMove);
-				app.stage.on("pointerup", onUp);
-			});
-			viewport.addChild(g);
-			activeHandles.push(g);
+	function applyTemplate(name: string) {
+		const tpl = POSE_TEMPLATES[name];
+		for (const key of Object.keys(idx) as BONE_NAME[]) {
+			if (!originalFfd[key] || !rig.ffd[key]) continue;
+			const offset = tpl[key] || [0, 0, 0, 0, 0, 0, 0, 0];
+			for (let i = 0; i < 8; i++) {
+				rig.ffd[key][i] = originalFfd[key][i] + offset[i];
+			}
 		}
 	}
 
 	fileInput.addEventListener("change", async () => {
 		const file = fileInput.files?.[0];
 		if (!file) return;
+
 		const url = URL.createObjectURL(file);
 		viewport.removeChildren();
-		clearHandles();
 
 		const layers = await walkPSD(url, SKIP);
 		nodes = drawCharacter(layers);
 		({ verts, idx, nodeRanges } = groupNodes(nodes, GROUP_DEFS));
+
+		rig = new KokoroRig(app, nodes, verts, idx, nodeRanges);
+
+		originalFfd = {} as never;
+		for (const key of Object.keys(idx) as BONE_NAME[]) {
+			if (rig.ffd[key]) originalFfd[key] = [...rig.ffd[key]];
+		}
 
 		const root = new PIXI.Container();
 		for (const node of nodes) root.addChild(node.container);
 		root.scale.set(SCENE_SCALE);
 		viewport.addChild(root);
 		viewport.fit();
+
 		URL.revokeObjectURL(url);
 
-		groupListEl.innerHTML = "";
-		for (const key of Object.keys(idx) as BONE_NAME[]) {
+		templateUI.innerHTML = "";
+		for (const name of Object.keys(POSE_TEMPLATES)) {
 			const btn = document.createElement("button");
-			btn.textContent = key;
-			btn.onclick = () => selectGroup(key);
-			groupListEl.appendChild(btn);
+			btn.textContent = name;
+			btn.onclick = () => applyTemplate(name);
+			templateUI.appendChild(btn);
 		}
 	});
 })();

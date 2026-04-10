@@ -54,9 +54,7 @@ const SKIP = new Set([
 	viewport.addChild(root);
 
 	const { verts, idx, nodeRanges } = groupNodes(nodes, {
-		head: pipe(psdGroup("顔"), psdGroup("耳")),
-		eyeL: psdGroup("瞳L"),
-		eyeR: psdGroup("瞳"),
+		head: pipe(psdGroup("顔"), psdGroup("耳"), psdGroup("瞳L"), psdGroup("瞳")),
 		body: pipe(
 			psdGroup("襟裏"),
 			psdGroup("体", ["脚"]),
