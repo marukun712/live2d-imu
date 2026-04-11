@@ -55,8 +55,6 @@ const SKIP = new Set([
 
 	const { verts, idx, nodeRanges } = groupNodes(nodes, {
 		head: pipe(psdGroup("顔"), psdGroup("耳")),
-		eyeL: psdGroup("瞳L"),
-		eyeR: psdGroup("瞳"),
 		body: pipe(
 			psdGroup("襟裏"),
 			psdGroup("体", ["脚"]),
@@ -80,8 +78,9 @@ const SKIP = new Set([
 		const tx = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
 		const ty = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
 		rig.setPose([
-			rig.calcTween("left", "right", tx),
 			rig.calcTween("up", "down", ty),
+			rig.calcTween("left", "right", tx),
+			rig.calcTween("leanLeft", "leanRight", tx),
 		]);
 		rig.updateSway();
 	});
