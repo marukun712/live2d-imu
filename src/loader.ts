@@ -1,4 +1,4 @@
-import { type Layer, readPsd } from "ag-psd";
+import { initializeCanvas, type Layer, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
 import type { BONE_NAME } from "./rig";
 
@@ -18,8 +18,39 @@ export interface SpriteNode {
 	sprite: PIXI.MeshPlane;
 }
 
+export interface KokoroGroup {
+	nodes: SpriteNode[];
+	x: number;
+	y: number;
+	alpha: number;
+	visible: boolean;
+	scaleX: number;
+	scaleY: number;
+}
+
 export type GroupMatcher = (node: SpriteNode) => boolean;
 export type GroupMap = Record<BONE_NAME, GroupMatcher>;
+
+export async function setupCanvas(parent: HTMLElement) {
+	const app = (async () => {
+		initializeCanvas((width, height) => {
+			const canvas = document.createElement("canvas");
+			canvas.width = width;
+			canvas.height = height;
+			return canvas;
+		});
+
+		const app = new PIXI.Application();
+		await app.init({
+			resizeTo: window,
+			backgroundColor: 0xffffff,
+		});
+		parent.appendChild(app.canvas);
+		return app;
+	})();
+
+	return await app;
+}
 
 export async function walkPSD(url: string, skip: Set<string> = new Set()) {
 	const res = await fetch(url);
@@ -87,7 +118,7 @@ export function drawCharacter(layers: PSDIndex[]) {
 	return nodes;
 }
 
-export function groupNodes(nodes: SpriteNode[], map: GroupMap) {
+export function rigNodes(nodes: SpriteNode[], map: GroupMap) {
 	const idx = {} as Record<BONE_NAME, { start: number; end: number }>;
 	const verts: number[] = [];
 	const nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
@@ -109,6 +140,75 @@ export function groupNodes(nodes: SpriteNode[], map: GroupMap) {
 	}
 
 	return { verts, idx, nodeRanges };
+}
+
+export function groupNodes(
+	nodes: SpriteNode[],
+	map: GroupMap,
+): Record<BONE_NAME, KokoroGroup> {
+	const result = {} as Record<BONE_NAME, KokoroGroup>;
+	for (const [key, match] of Object.entries(map) as [
+		BONE_NAME,
+		GroupMatcher,
+	][]) {
+		const matched = nodes.filter(match);
+		const containers = matched.map((n) => n.container);
+
+		const group: KokoroGroup = {
+			nodes: matched,
+			get x() {
+				return containers[0]?.x ?? 0;
+			},
+			set x(v: number) {
+				containers.forEach((c) => {
+					c.x = v;
+				});
+			},
+			get y() {
+				return containers[0]?.y ?? 0;
+			},
+			set y(v: number) {
+				containers.forEach((c) => {
+					c.y = v;
+				});
+			},
+			get alpha() {
+				return containers[0]?.alpha ?? 1;
+			},
+			set alpha(v: number) {
+				containers.forEach((c) => {
+					c.alpha = v;
+				});
+			},
+			get visible() {
+				return containers[0]?.visible ?? true;
+			},
+			set visible(v: boolean) {
+				containers.forEach((c) => {
+					c.visible = v;
+				});
+			},
+			get scaleX() {
+				return containers[0]?.scale.x ?? 1;
+			},
+			set scaleX(v: number) {
+				containers.forEach((c) => {
+					c.scale.x = v;
+				});
+			},
+			get scaleY() {
+				return containers[0]?.scale.y ?? 1;
+			},
+			set scaleY(v: number) {
+				containers.forEach((c) => {
+					c.scale.y = v;
+				});
+			},
+		};
+
+		result[key] = group;
+	}
+	return result;
 }
 
 export function byName(name: string): GroupMatcher {
