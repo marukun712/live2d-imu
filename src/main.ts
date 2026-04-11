@@ -42,7 +42,7 @@ root.scale.set(0.1);
 viewport.addChild(root);
 
 const { verts, idx, nodeRanges } = rigNodes(nodes, {
-	head: pipe(psdGroup("顔"), psdGroup("耳")),
+	head: pipe(psdGroup("顔"), psdGroup("耳"), psdGroup("帽子")),
 	body: pipe(
 		psdGroup("襟裏"),
 		psdGroup("体", ["脚"]),

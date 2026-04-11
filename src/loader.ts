@@ -86,7 +86,6 @@ export async function walkPSD(url: string, skip: Set<string> = new Set()) {
 
 export function drawCharacter(layers: PSDIndex[]) {
 	const nodes: SpriteNode[] = [];
-	let lastSprite: PIXI.MeshPlane | null = null;
 
 	for (const layer of layers) {
 		const sprite = new PIXI.MeshPlane({
@@ -97,22 +96,11 @@ export function drawCharacter(layers: PSDIndex[]) {
 		sprite.x = layer.x;
 		sprite.y = layer.y;
 
-		if (layer.clipping && lastSprite) {
-			const mask = new PIXI.Sprite(lastSprite.texture);
-			mask.x = lastSprite.x;
-			mask.y = lastSprite.y;
-			const container = new PIXI.Container();
-			container.addChild(mask);
-			sprite.mask = mask;
-			container.addChild(sprite);
-			nodes.push({ name: layer.name, path: layer.path, container, sprite });
-		} else {
+		if (!layer.clipping) {
 			const container = new PIXI.Container();
 			container.addChild(sprite);
 			nodes.push({ name: layer.name, path: layer.path, container, sprite });
 		}
-
-		lastSprite = sprite;
 	}
 
 	return nodes;
