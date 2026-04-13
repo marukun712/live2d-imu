@@ -15,8 +15,11 @@ function printTree(nodes: typeof psd.children, indent = "") {
 		const node = nodes[i];
 		const isLast = i === nodes.length - 1;
 		const branch = isLast ? "└─" : "├─";
-		const icon = node.type === "Group" ? "📁" : "🖼";
+
+		const icon = node.type === "Group" ? "📁" : node.isHidden ? "👻" : "🖼";
+
 		console.log(`${indent}${branch} ${icon} ${node.name}`);
+
 		if (node.type === "Group") {
 			printTree(node.children, indent + (isLast ? "   " : "│  "));
 		}

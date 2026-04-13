@@ -6,7 +6,8 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc && vite build",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"psd": "bun psd.ts ./public/models/character.psd"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.10",
