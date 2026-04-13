@@ -1,6 +1,6 @@
 import { initializeCanvas, type Layer, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
-import type { BONE_NAME } from "./rig";
+import type { BONE_NAME, FACE_NAME } from "./rig";
 
 export interface PSDIndex {
 	name: string;
@@ -29,7 +29,8 @@ export interface KokoroGroup {
 }
 
 export type GroupMatcher = (node: SpriteNode) => boolean;
-export type GroupMap = Record<BONE_NAME, GroupMatcher>;
+export type RigMap = Record<BONE_NAME, GroupMatcher>;
+export type GroupMap = Record<FACE_NAME, GroupMatcher>;
 
 export async function setupCanvas(parent: HTMLElement) {
 	const app = (async () => {
@@ -106,7 +107,7 @@ export function drawCharacter(layers: PSDIndex[]) {
 	return nodes;
 }
 
-export function rigNodes(nodes: SpriteNode[], map: GroupMap) {
+export function rigNodes(nodes: SpriteNode[], map: RigMap) {
 	const idx = {} as Record<BONE_NAME, { start: number; end: number }>;
 	const verts: number[] = [];
 	const nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
@@ -133,10 +134,10 @@ export function rigNodes(nodes: SpriteNode[], map: GroupMap) {
 export function groupNodes(
 	nodes: SpriteNode[],
 	map: GroupMap,
-): Record<BONE_NAME, KokoroGroup> {
-	const result = {} as Record<BONE_NAME, KokoroGroup>;
+): Record<FACE_NAME, KokoroGroup> {
+	const result = {} as Record<FACE_NAME, KokoroGroup>;
 	for (const [key, match] of Object.entries(map) as [
-		BONE_NAME,
+		FACE_NAME,
 		GroupMatcher,
 	][]) {
 		const matched = nodes.filter(match);

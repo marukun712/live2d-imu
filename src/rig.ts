@@ -1,5 +1,5 @@
 import type * as PIXI from "pixi.js";
-import type { SpriteNode } from "./loader";
+import type { KokoroGroup, SpriteNode } from "./loader";
 
 export const BONE_LIST = [
 	"head",
@@ -15,7 +15,10 @@ export const BONE_LIST = [
 	"hairBack",
 ] as const;
 
+export const FACE_LIST = ["pupilL", "pupilR", "eyeL", "eyeR", "mouth"] as const;
+
 export type BONE_NAME = (typeof BONE_LIST)[number];
+export type FACE_NAME = (typeof FACE_LIST)[number];
 
 export type Point = [number, number];
 export type GridOffsets = Point | Point[];
@@ -290,5 +293,58 @@ export class KokoroRig {
 
 		// 適用
 		this.applyVerts();
+	}
+}
+
+export class KokoroFace {
+	private eyeL: KokoroGroup;
+	private eyeR: KokoroGroup;
+	private pupilL: KokoroGroup;
+	private pupilR: KokoroGroup;
+	private mouth: KokoroGroup;
+
+	constructor(groups: Record<FACE_NAME, KokoroGroup>) {
+		this.eyeL = groups.eyeL;
+		this.eyeR = groups.eyeR;
+		this.pupilL = groups.pupilL;
+		this.pupilR = groups.pupilR;
+		this.mouth = groups.mouth;
+	}
+
+	setFocus(x: number, y: number) {
+		const dx = (x - 0.5) * 40;
+		const dy = (y - 0.5) * 20;
+		for (const g of [this.pupilL, this.pupilR]) {
+			g.x = dx;
+			g.y = dy;
+		}
+	}
+
+	setOpenMouth(t: number) {
+		this.mouth.scaleY = t;
+	}
+
+	setOpenEyeL(t: number) {
+		this.eyeL.scaleY = t;
+		this.pupilL.scaleY = t;
+	}
+
+	setOpenEyeR(t: number) {
+		this.eyeR.scaleY = t;
+		this.pupilR.scaleY = t;
+	}
+
+	setScaleEyeL(s: number) {
+		this.eyeL.scaleX = s;
+		this.eyeL.scaleY = s;
+		this.pupilL.scaleX = s;
+		this.pupilL.scaleY = s;
+	}
+
+	setScaleEyeR(s: number) {
+		this.eyeR.scaleX = s;
+		this.eyeR.scaleY = s;
+		this.pupilR.scaleX = s;
+		this.pupilR.scaleY = s;
 	}
 }
