@@ -1,5 +1,5 @@
 ---
-name: rig 
+name: KokoroRig 
 description: KokoroRigのリギング方法
 ---
 
