@@ -309,14 +309,23 @@ export class KokoroFace {
 		this.pupilL = groups.pupilL;
 		this.pupilR = groups.pupilR;
 		this.mouth = groups.mouth;
+
+		for (const group of Object.values(groups)) {
+			for (const node of group.nodes) {
+				const cx = node.sprite.x + node.sprite.texture.width / 2;
+				const cy = node.sprite.y + node.sprite.texture.height / 2;
+				node.container.pivot.set(cx, cy);
+				node.container.position.set(cx, cy);
+			}
+		}
 	}
 
 	setFocus(x: number, y: number) {
 		const dx = (x - 0.5) * 40;
 		const dy = (y - 0.5) * 20;
-		for (const g of [this.pupilL, this.pupilR]) {
-			g.x = dx;
-			g.y = dy;
+		for (const node of [...this.pupilL.nodes, ...this.pupilR.nodes]) {
+			node.container.x = node.container.pivot.x + dx;
+			node.container.y = node.container.pivot.y + dy;
 		}
 	}
 
