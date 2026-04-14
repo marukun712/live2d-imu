@@ -169,38 +169,22 @@ function scheduleBlink() {
 }
 
 function scheduleGaze() {
-	later(rand(1.5, 4.0), () => {
-		const targetX = rand(0.25, 0.75);
-		const targetY = rand(0.35, 0.65);
-
-		gsap.to(anim, {
-			lookX: targetX + rand(-0.15, 0.15),
-			lookY: targetY + rand(-0.1, 0.1),
-			duration: rand(0.25, 0.45),
-			ease: "power3.out",
-			onComplete: () => {
-				gsap.to(anim, {
-					lookX: targetX,
-					lookY: targetY,
-					duration: rand(0.3, 0.6),
-					ease: "power2.inOut",
-				});
-			},
-		});
-
-		scheduleGaze();
+	gsap.to(anim, {
+		lookX: () => rand(0.0, 1.0),
+		lookY: () => rand(0.0, 1.0),
+		duration: () => rand(0.4, 1.2),
+		ease: "sine.inOut",
+		onComplete: scheduleGaze,
 	});
 }
 
 function scheduleLean() {
-	later(rand(3.0, 7.0), () => {
-		gsap.to(anim, {
-			leanX: rand(0.3, 0.7),
-			duration: rand(1.2, 2.5),
-			ease: "sine.inOut",
-		});
-		rig.updateSway();
-		scheduleLean();
+	gsap.to(anim, {
+		leanX: () => rand(0.0, 1.0),
+		duration: () => rand(0.6, 1.5),
+		ease: "sine.inOut",
+		onUpdate: () => rig.updateSway(),
+		onComplete: scheduleLean,
 	});
 }
 
@@ -208,85 +192,13 @@ function startBreathing() {
 	const proxy = { v: 0 };
 	gsap.to(proxy, {
 		v: 1,
-		duration: rand(2.8, 3.5),
+		duration: rand(0.8, 1.4),
 		ease: "sine.inOut",
 		yoyo: true,
 		repeat: -1,
 		onUpdate() {
-			anim.lookY = anim.lookY * 0.98 + (0.5 + (proxy.v - 0.5) * 0.05) * 0.02;
-		},
-	});
-}
-
-function scheduleReaction() {
-	later(rand(8.0, 18.0), () => {
-		const reactions = [
-			reactionLookUp,
-			reactionNod,
-			reactionTiltHead,
-			reactionBigBlink,
-		];
-		reactions[Math.floor(Math.random() * reactions.length)]();
-		scheduleReaction();
-	});
-}
-
-function reactionLookUp() {
-	gsap.to(anim, {
-		lookY: rand(0.1, 0.25),
-		duration: 0.4,
-		ease: "power2.out",
-		onComplete: () => {
-			later(rand(0.6, 1.2), () => {
-				gsap.to(anim, { lookY: 0.5, duration: 0.6, ease: "power2.inOut" });
-			});
-		},
-	});
-}
-
-function reactionNod() {
-	gsap
-		.timeline()
-		.to(anim, { lookY: 0.65, duration: 0.18, ease: "power2.in" })
-		.to(anim, { lookY: 0.45, duration: 0.25, ease: "power2.out" })
-		.to(anim, { lookY: 0.65, duration: 0.18, ease: "power2.in" })
-		.to(anim, { lookY: 0.5, duration: 0.35, ease: "power2.out" });
-}
-
-function reactionTiltHead() {
-	gsap.to(anim, {
-		leanX: Math.random() < 0.5 ? 0.25 : 0.75,
-		duration: 0.5,
-		ease: "back.out(1.5)",
-		onComplete: () => {
-			rig.updateSway();
-			later(rand(0.8, 1.5), () => {
-				gsap.to(anim, {
-					leanX: 0.5,
-					duration: 0.7,
-					ease: "elastic.out(1, 0.6)",
-					onUpdate: () => rig.updateSway(),
-				});
-			});
-		},
-	});
-}
-
-function reactionBigBlink() {
-	gsap.to(anim, {
-		eyeOpenL: 0,
-		eyeOpenR: 0,
-		duration: 0.22,
-		ease: "power2.in",
-		onComplete: () => {
-			later(rand(0.1, 0.25), () => {
-				gsap.to(anim, {
-					eyeOpenL: 1,
-					eyeOpenR: 1,
-					duration: 0.35,
-					ease: "power2.out",
-				});
-			});
+			anim.lookY += (proxy.v - 0.5) * 0.04;
+			anim.leanX += (proxy.v - 0.5) * 0.025;
 		},
 	});
 }
@@ -295,6 +207,5 @@ later(0.5, () => {
 	scheduleBlink();
 	scheduleGaze();
 	scheduleLean();
-	scheduleReaction();
 	startBreathing();
 });
