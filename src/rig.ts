@@ -204,7 +204,7 @@ export class KokoroRig {
 
 	public calcSway() {
 		this.swayAmp *= 0.95;
-		this.swayTime += 0.1 * this.swayAmp;
+		this.swayTime += 0.05 * this.swayAmp;
 
 		const result = {} as TweenResult;
 		for (const bone of BONE_LIST)
@@ -212,7 +212,7 @@ export class KokoroRig {
 
 		for (const bone of ["hairFront", "hairSide", "hairBack"] as BONE_NAME[]) {
 			for (let row = 0; row < 3; row++) {
-				const s = Math.sin(this.swayTime + row) * this.swayAmp * (row / 2);
+				const s = Math.sin(this.swayTime + row) * this.swayAmp * (row / 2) * 20;
 				for (let col = 0; col < 3; col++) result[bone][row * 3 + col][0] = s;
 			}
 		}
