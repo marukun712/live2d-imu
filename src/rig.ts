@@ -27,25 +27,25 @@ export type TweenResult = Record<BONE_NAME, Point[]>;
 
 export class KokoroRig {
 	private readonly nodes: SpriteNode[];
-	private readonly template: Template;
-
 	private readonly verts: number[];
-	private readonly origVerts: number[];
-	private readonly vertsIdx: Record<BONE_NAME, { start: number; end: number }>;
-	private readonly nodeRanges: Map<SpriteNode, { start: number; end: number }>;
-
-	public readonly bounds: Record<
-		BONE_NAME,
-		{ minX: number; minY: number; w: number; h: number }
+	private readonly vertsIdx: Partial<
+		Record<BONE_NAME, { start: number; end: number }>
 	>;
-	public readonly grid: Record<BONE_NAME, Point[]>;
+	private readonly nodeRanges: Map<SpriteNode, { start: number; end: number }>;
+	private readonly template: Template;
+	private readonly power: number;
+
+	private readonly origVerts: number[];
+	public readonly bounds: Partial<
+		Record<BONE_NAME, { minX: number; minY: number; w: number; h: number }>
+	>;
+	public readonly grid: Partial<Record<BONE_NAME, Point[]>>;
 
 	private readonly vertToNode: SpriteNode[] = [];
 	private readonly nodeOffsets: Map<SpriteNode, { x: number; y: number }> =
 		new Map();
 
 	private lastTweens: TweenResult[] = [];
-
 	private swayTime = 0;
 	private swayAmp = 0;
 
@@ -53,9 +53,10 @@ export class KokoroRig {
 		app: PIXI.Application,
 		nodes: SpriteNode[],
 		verts: number[],
-		vertsIdx: Record<BONE_NAME, { start: number; end: number }>,
+		vertsIdx: Partial<Record<BONE_NAME, { start: number; end: number }>>,
 		nodeRanges: Map<SpriteNode, { start: number; end: number }>,
 		template: Template,
+		power: number,
 	) {
 		this.nodes = nodes;
 		this.verts = verts;
@@ -63,12 +64,10 @@ export class KokoroRig {
 		this.vertsIdx = vertsIdx;
 		this.nodeRanges = nodeRanges;
 		this.template = template;
+		this.power = power;
 
-		this.bounds = {} as Record<
-			BONE_NAME,
-			{ minX: number; minY: number; w: number; h: number }
-		>;
-		this.grid = {} as Record<BONE_NAME, Point[]>;
+		this.bounds = {};
+		this.grid = {};
 
 		// 全ノードのx,yを取得して、verts番号と紐づけ
 		for (const node of this.nodes) {
@@ -86,6 +85,7 @@ export class KokoroRig {
 		}
 
 		for (const bone of BONE_LIST) {
+			if (!this.vertsIdx[bone]) continue;
 			// 各ボーンの開始index番号を取得
 			const { start, end } = this.vertsIdx[bone];
 			// 3x3グリッドの初期化
@@ -176,9 +176,11 @@ export class KokoroRig {
 	}
 
 	// tweenをブレンドする
-	public blendTweens(inputs: TweenResult[], power?: number) {
+	public blendTweens(inputs: TweenResult[], power: number) {
 		for (const bone of BONE_LIST) {
 			const target = this.grid[bone];
+
+			if (!target) continue;
 
 			for (let i = 0; i < 9; i++) {
 				target[i][0] = 0;
@@ -201,8 +203,8 @@ export class KokoroRig {
 	}
 
 	public calcSway() {
-		this.swayAmp *= 0.97;
-		this.swayTime += 0.06 * this.swayAmp;
+		this.swayAmp *= 0.95;
+		this.swayTime += 0.1 * this.swayAmp;
 
 		const result = {} as TweenResult;
 		for (const bone of BONE_LIST)
@@ -210,13 +212,10 @@ export class KokoroRig {
 
 		for (const bone of ["hairFront", "hairSide", "hairBack"] as BONE_NAME[]) {
 			for (let row = 0; row < 3; row++) {
-				const s = Math.sin(this.swayTime + row) * this.swayAmp * (row / 2) * 24;
+				const s = Math.sin(this.swayTime + row) * this.swayAmp * (row / 2);
 				for (let col = 0; col < 3; col++) result[bone][row * 3 + col][0] = s;
 			}
 		}
-		for (let i = 0; i < 9; i++)
-			result.chest[i][1] = Math.sin(this.swayTime) * this.swayAmp * 2;
-
 		return result;
 	}
 
@@ -235,9 +234,10 @@ export class KokoroRig {
 	}
 
 	private tick() {
-		this.blendTweens([...this.lastTweens, this.calcSway()], 1.5);
+		this.blendTweens([...this.lastTweens, this.calcSway()], this.power);
 
 		for (const bone of BONE_LIST) {
+			if (!this.vertsIdx[bone]) continue;
 			const { start, end } = this.vertsIdx[bone];
 
 			if (start === end || !this.bounds[bone]) continue;
@@ -246,6 +246,7 @@ export class KokoroRig {
 			const { minX, minY, w, h } = this.bounds[bone];
 			// ボーンのオフセットを取得
 			const offsets = this.grid[bone];
+			if (!offsets) continue;
 
 			for (let i = start; i < end; i += 2) {
 				// 初期位置を取得
@@ -297,18 +298,10 @@ export class KokoroRig {
 }
 
 export class KokoroFace {
-	private eyeL: KokoroGroup;
-	private eyeR: KokoroGroup;
-	private pupilL: KokoroGroup;
-	private pupilR: KokoroGroup;
-	private mouth: KokoroGroup;
+	private readonly groups: Partial<Record<FACE_NAME, KokoroGroup>>;
 
-	constructor(groups: Record<FACE_NAME, KokoroGroup>) {
-		this.eyeL = groups.eyeL;
-		this.eyeR = groups.eyeR;
-		this.pupilL = groups.pupilL;
-		this.pupilR = groups.pupilR;
-		this.mouth = groups.mouth;
+	constructor(groups: Partial<Record<FACE_NAME, KokoroGroup>>) {
+		this.groups = groups;
 
 		for (const group of Object.values(groups)) {
 			for (const node of group.nodes) {
@@ -323,37 +316,58 @@ export class KokoroFace {
 	setFocus(x: number, y: number) {
 		const dx = (x - 0.5) * 40;
 		const dy = (y - 0.5) * 20;
-		for (const node of [...this.pupilL.nodes, ...this.pupilR.nodes]) {
+		const lGroup = this.groups.pupilL;
+		const rGroup = this.groups.pupilR;
+		if (!lGroup || !rGroup) return;
+		for (const node of [...lGroup.nodes, ...rGroup.nodes]) {
 			node.container.x = node.container.pivot.x + dx;
 			node.container.y = node.container.pivot.y + dy;
 		}
 	}
 
 	setOpenMouth(t: number) {
-		this.mouth.scaleY = t;
+		const mouth = this.groups.mouth;
+		if (!mouth) return;
+		mouth.scaleY = t;
 	}
 
 	setOpenEyeL(t: number) {
-		this.eyeL.scaleY = t;
-		this.pupilL.scaleY = t;
+		const eye = this.groups.eyeL;
+		const pupil = this.groups.pupilL;
+		if (!eye || !pupil) return;
+
+		eye.scaleY = t;
+		pupil.scaleY = t;
 	}
 
 	setOpenEyeR(t: number) {
-		this.eyeR.scaleY = t;
-		this.pupilR.scaleY = t;
+		const eye = this.groups.eyeR;
+		const pupil = this.groups.pupilR;
+		if (!eye || !pupil) return;
+
+		eye.scaleY = t;
+		pupil.scaleY = t;
 	}
 
 	setScaleEyeL(s: number) {
-		this.eyeL.scaleX = s;
-		this.eyeL.scaleY = s;
-		this.pupilL.scaleX = s;
-		this.pupilL.scaleY = s;
+		const eye = this.groups.eyeL;
+		const pupil = this.groups.pupilL;
+		if (!eye || !pupil) return;
+
+		eye.scaleX = s;
+		eye.scaleY = s;
+		pupil.scaleX = s;
+		pupil.scaleY = s;
 	}
 
 	setScaleEyeR(s: number) {
-		this.eyeR.scaleX = s;
-		this.eyeR.scaleY = s;
-		this.pupilR.scaleX = s;
-		this.pupilR.scaleY = s;
+		const eye = this.groups.eyeR;
+		const pupil = this.groups.pupilR;
+		if (!eye || !pupil) return;
+
+		eye.scaleX = s;
+		eye.scaleY = s;
+		pupil.scaleX = s;
+		pupil.scaleY = s;
 	}
 }

@@ -29,8 +29,8 @@ export interface KokoroGroup {
 }
 
 export type GroupMatcher = (node: SpriteNode) => boolean;
-export type RigMap = Record<BONE_NAME, GroupMatcher>;
-export type GroupMap = Record<FACE_NAME, GroupMatcher>;
+export type RigMap = Partial<Record<BONE_NAME, GroupMatcher>>;
+export type GroupMap = Partial<Record<FACE_NAME, GroupMatcher>>;
 
 export async function setupCanvas(parent: HTMLElement) {
 	const app = (async () => {
@@ -53,14 +53,14 @@ export async function setupCanvas(parent: HTMLElement) {
 	return await app;
 }
 
-export async function walkPSD(url: string, skip: Set<string> = new Set()) {
+export async function walkPSD(url: string, skip?: Set<string>) {
 	const res = await fetch(url);
 	const psd = readPsd(await res.arrayBuffer());
 
 	const result: PSDIndex[] = [];
 
 	function walk(layer: Layer, path: string[]) {
-		if (!layer.name || layer.hidden || skip.has(layer.name)) return;
+		if (!layer.name || layer.hidden || skip?.has(layer.name)) return;
 		const nextPath = [...path, layer.name.trim()];
 		if (layer.children) {
 			layer.children.forEach((l) => {
@@ -108,7 +108,7 @@ export function drawCharacter(layers: PSDIndex[]) {
 }
 
 export function rigNodes(nodes: SpriteNode[], map: RigMap) {
-	const idx = {} as Record<BONE_NAME, { start: number; end: number }>;
+	const idx: Partial<Record<BONE_NAME, { start: number; end: number }>> = {};
 	const verts: number[] = [];
 	const nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
 
@@ -134,8 +134,8 @@ export function rigNodes(nodes: SpriteNode[], map: RigMap) {
 export function groupNodes(
 	nodes: SpriteNode[],
 	map: GroupMap,
-): Record<FACE_NAME, KokoroGroup> {
-	const result = {} as Record<FACE_NAME, KokoroGroup>;
+): Partial<Record<FACE_NAME, KokoroGroup>> {
+	const result: Partial<Record<FACE_NAME, KokoroGroup>> = {};
 	for (const [key, match] of Object.entries(map) as [
 		FACE_NAME,
 		GroupMatcher,

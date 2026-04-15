@@ -2,10 +2,8 @@ import gsap from "gsap";
 import * as PIXI from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import {
-	byName,
 	drawCharacter,
 	groupNodes,
-	pipe,
 	psdGroup,
 	rigNodes,
 	setupCanvas,
@@ -13,8 +11,6 @@ import {
 } from "./loader";
 import { KokoroFace, KokoroRig } from "./rig";
 import { POSE_TEMPLATES } from "./template";
-
-const SKIP = new Set(["口A", "照れ", "汗", "青ざめ", "ハート", "しいたけ"]);
 
 const app = await setupCanvas(document.body);
 
@@ -28,7 +24,7 @@ const viewport = new Viewport({
 app.stage.addChild(viewport);
 viewport.drag().pinch().wheel();
 
-const index = await walkPSD("/models/character.psd", SKIP);
+const index = await walkPSD("/models/character.psd");
 const nodes = drawCharacter(index);
 
 const root = new PIXI.Container();
@@ -37,63 +33,24 @@ root.scale.set(0.1);
 viewport.addChild(root);
 
 const { verts, idx, nodeRanges } = rigNodes(nodes, {
-	head: pipe(
-		psdGroup("顔"),
-		psdGroup("髪"),
-		psdGroup("目→"),
-		psdGroup("目←"),
-		psdGroup("耳→"),
-		psdGroup("耳←"),
-		psdGroup("口B"),
-		psdGroup("眉"),
-		byName("襟"),
-		byName("頭頂部影"),
-	),
-	body: pipe(
-		byName("胴体"),
-		psdGroup("首"),
-		psdGroup("肩"),
-		psdGroup("おっぱい"),
-		psdGroup("スカート"),
-		byName("スカート影"),
-		byName("ひらひら→"),
-		byName("ひらひら←"),
-		byName("横後髪→"),
-		byName("横後髪←"),
-		byName("後頭部"),
-		psdGroup("尻尾"),
-	),
-	chest: psdGroup("おっぱい"),
-	upperArmL: () => false,
-	forearmL: pipe(psdGroup("袖←"), byName("手←")),
-	upperArmR: () => false,
-	forearmR: pipe(psdGroup("袖→"), byName("手→")),
-	legs: psdGroup("脚"),
-	hairFront: pipe(
-		byName("前髪中央"),
-		byName("サイド前髪→"),
-		byName("サイド前髪←"),
-	),
-	hairSide: pipe(
-		byName("サイド触覚→"),
-		byName("サイド触覚←"),
-		byName("横前毛→"),
-		byName("横前毛←"),
-		byName("お花飾り"),
-		psdGroup("紐アクセ"),
-	),
-	hairBack: () => false,
+	hairBack: psdGroup("髪"),
+	hairFront: psdGroup("前髪"),
 });
 
 const groups = groupNodes(nodes, {
-	eyeL: psdGroup("目←"),
-	eyeR: psdGroup("目→"),
-	pupilL: (n) => n.path.includes("目←") && n.path.includes("目玉"),
-	pupilR: (n) => n.path.includes("目→") && n.path.includes("目玉"),
-	mouth: psdGroup("口B"),
+	eyeL: psdGroup("目"),
+	mouth: psdGroup("口"),
 });
 
-const rig = new KokoroRig(app, nodes, verts, idx, nodeRanges, POSE_TEMPLATES);
+const rig = new KokoroRig(
+	app,
+	nodes,
+	verts,
+	idx,
+	nodeRanges,
+	POSE_TEMPLATES,
+	1.0,
+);
 const face = new KokoroFace(groups);
 
 const anim = {
