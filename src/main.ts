@@ -5,7 +5,6 @@ import {
 	drawCharacter,
 	groupNodes,
 	psdGroup,
-	rigNodes,
 	setupCanvas,
 	walkPSD,
 } from "./loader";
@@ -32,26 +31,16 @@ for (const node of nodes) root.addChild(node.container);
 root.scale.set(0.1);
 viewport.addChild(root);
 
-const { verts, idx, nodeRanges } = rigNodes(nodes, {
-	hairBack: psdGroup("髪"),
-	hairFront: psdGroup("前髪"),
+const rig = new KokoroRig(app, nodes, {
+	poseTemplate: POSE_TEMPLATES,
 });
 
-const groups = groupNodes(nodes, {
-	eyeL: psdGroup("目"),
-	mouth: psdGroup("口"),
-});
-
-const rig = new KokoroRig(
-	app,
-	nodes,
-	verts,
-	idx,
-	nodeRanges,
-	POSE_TEMPLATES,
-	1.0,
+const face = new KokoroFace(
+	groupNodes(nodes, {
+		eyeL: psdGroup("目"),
+		mouth: psdGroup("口"),
+	}),
 );
-const face = new KokoroFace(groups);
 
 const anim = {
 	lookX: 0.5,
@@ -68,9 +57,9 @@ app.ticker.add(() => {
 	face.setOpenEyeR(anim.eyeOpenR);
 	face.setOpenMouth(anim.mouthOpen);
 	rig.setPose([
-		rig.calcTween("up", "down", anim.lookY),
-		rig.calcTween("left", "right", anim.lookX),
-		rig.calcTween("leanLeft", "leanRight", anim.leanX),
+		rig.calcBlend("left", "right", anim.lookX),
+		rig.calcBlend("up", "down", anim.lookY),
+		rig.calcBlend("leanLeft", "leanRight", anim.leanX),
 	]);
 });
 

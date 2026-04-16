@@ -1,6 +1,6 @@
 import { initializeCanvas, type Layer, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
-import type { BONE_NAME, FACE_NAME } from "./rig";
+import type { FACE_NAME } from "./rig";
 
 export interface PSDIndex {
 	name: string;
@@ -29,7 +29,6 @@ export interface KokoroGroup {
 }
 
 export type GroupMatcher = (node: SpriteNode) => boolean;
-export type RigMap = Partial<Record<BONE_NAME, GroupMatcher>>;
 export type GroupMap = Partial<Record<FACE_NAME, GroupMatcher>>;
 
 export async function setupCanvas(parent: HTMLElement) {
@@ -81,7 +80,6 @@ export async function walkPSD(url: string, skip?: Set<string>) {
 	psd.children?.forEach((l) => {
 		walk(l, []);
 	});
-
 	return result;
 }
 
@@ -107,30 +105,6 @@ export function drawCharacter(layers: PSDIndex[]) {
 	return nodes;
 }
 
-export function rigNodes(nodes: SpriteNode[], map: RigMap) {
-	const idx: Partial<Record<BONE_NAME, { start: number; end: number }>> = {};
-	const verts: number[] = [];
-	const nodeRanges = new Map<SpriteNode, { start: number; end: number }>();
-
-	for (const [key, match] of Object.entries(map) as [
-		BONE_NAME,
-		GroupMatcher,
-	][]) {
-		const matched = nodes.filter(match);
-		const start = verts.length;
-
-		for (const n of matched) {
-			const s = verts.length;
-			verts.push(...n.sprite.geometry.getBuffer("aPosition").data);
-			nodeRanges.set(n, { start: s, end: verts.length });
-		}
-
-		idx[key] = { start, end: verts.length };
-	}
-
-	return { verts, idx, nodeRanges };
-}
-
 export function groupNodes(
 	nodes: SpriteNode[],
 	map: GroupMap,
@@ -148,7 +122,7 @@ export function groupNodes(
 			get x() {
 				return containers[0]?.x ?? 0;
 			},
-			set x(v: number) {
+			set x(v) {
 				containers.forEach((c) => {
 					c.x = v;
 				});
@@ -156,7 +130,7 @@ export function groupNodes(
 			get y() {
 				return containers[0]?.y ?? 0;
 			},
-			set y(v: number) {
+			set y(v) {
 				containers.forEach((c) => {
 					c.y = v;
 				});
@@ -164,7 +138,7 @@ export function groupNodes(
 			get alpha() {
 				return containers[0]?.alpha ?? 1;
 			},
-			set alpha(v: number) {
+			set alpha(v) {
 				containers.forEach((c) => {
 					c.alpha = v;
 				});
@@ -172,7 +146,7 @@ export function groupNodes(
 			get visible() {
 				return containers[0]?.visible ?? true;
 			},
-			set visible(v: boolean) {
+			set visible(v) {
 				containers.forEach((c) => {
 					c.visible = v;
 				});
@@ -180,7 +154,7 @@ export function groupNodes(
 			get scaleX() {
 				return containers[0]?.scale.x ?? 1;
 			},
-			set scaleX(v: number) {
+			set scaleX(v) {
 				containers.forEach((c) => {
 					c.scale.x = v;
 				});
@@ -188,7 +162,7 @@ export function groupNodes(
 			get scaleY() {
 				return containers[0]?.scale.y ?? 1;
 			},
-			set scaleY(v: number) {
+			set scaleY(v) {
 				containers.forEach((c) => {
 					c.scale.y = v;
 				});
