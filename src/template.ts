@@ -20,6 +20,9 @@ const curve = {
 			"M0,0 C0.188,0 0.4,-0.003 0.4,-0.003 0.4,-0.003 0.882,0.996 1,0.996 ",
 		),
 	),
+	chest: gsap.parseEase(
+		CustomEase.create("custom", "M0,0 C0.25,0 0.25,1 0.5,1 0.75,1 0.75,0 1,0"),
+	),
 };
 
 function getSpatialParams(u: number, v: number) {
@@ -35,7 +38,7 @@ function getSpatialParams(u: number, v: number) {
 export const POSE_TEMPLATES: Template = {
 	left: (u, v) => {
 		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.body(fromTop);
+		const w = curve.chest(fromTop);
 		return {
 			tx: -50,
 			ty: 0,
@@ -45,7 +48,7 @@ export const POSE_TEMPLATES: Template = {
 	},
 	right: (u, v) => {
 		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.body(fromTop);
+		const w = curve.chest(fromTop);
 		return {
 			tx: 50,
 			ty: 0,
