@@ -1,5 +1,5 @@
 import type * as PIXI from "pixi.js";
-import type { KokoroGroup, SpriteNode } from "./loader";
+import type { SpriteNode } from "./loader";
 
 export const FACE_LIST = ["pupilL", "pupilR", "eyeL", "eyeR", "mouth"] as const;
 export type FACE_NAME = (typeof FACE_LIST)[number];
@@ -31,8 +31,6 @@ export class KokoroRig {
 	private readonly h: number;
 
 	private activeFields: PoseField[] = [];
-	private swayTime = 0;
-	private swayAmp = 0;
 
 	constructor(
 		app: PIXI.Application,
@@ -95,13 +93,12 @@ export class KokoroRig {
 		app.ticker.add(() => this.tick());
 	}
 
-	public calcBlend(from: string, to: string, t: number): PoseField {
+	public lerpBlend(from: string, to: string, t: number): PoseField {
 		const a = this.template[from];
 		const b = this.template[to];
 		return (u, v) => {
-			const [ax, ay] = a ? a(u, v) : [0, 0];
-			const [bx, by] = b ? b(u, v) : [0, 0];
-			// lerp
+			const [ax, ay] = a(u, v);
+			const [bx, by] = b(u, v);
 			return [ax + (bx - ax) * t, ay + (by - ay) * t];
 		};
 	}
@@ -110,27 +107,11 @@ export class KokoroRig {
 		this.activeFields = fields;
 	}
 
-	public updateSway() {
-		this.swayAmp = 1;
-	}
-
-	private calcSway(): PoseField {
-		this.swayAmp *= 0.95;
-		this.swayTime += 0.05 * this.swayAmp;
-		const t = this.swayTime;
-		const a = this.swayAmp;
-		return (_u, v) => {
-			const influence = Math.max(0, 1 - v * 3.5);
-			return [Math.sin(t + v * Math.PI * 2) * a * influence * 25, 0];
-		};
-	}
-
 	private applyVerts() {
 		for (const { node, start, end } of this.nodeRanges) {
 			const buffer = node.sprite.geometry.getBuffer("aPosition");
 			const data = buffer.data as Float32Array;
 			for (let vi = start; vi < end; vi++) {
-				// x,yそれぞれ適用
 				data[(vi - start) * 2] = this.verts[vi * 2];
 				data[(vi - start) * 2 + 1] = this.verts[vi * 2 + 1];
 			}
@@ -140,7 +121,7 @@ export class KokoroRig {
 
 	private tick() {
 		this.verts.set(this.origVerts);
-		const fields = [...this.activeFields, this.calcSway()];
+		const fields = this.activeFields;
 		const total = this.origVerts.length / 2;
 
 		for (let vi = 0; vi < total; vi++) {
@@ -157,76 +138,5 @@ export class KokoroRig {
 		}
 
 		this.applyVerts();
-	}
-}
-
-export class KokoroFace {
-	private readonly groups: Partial<Record<FACE_NAME, KokoroGroup>>;
-
-	constructor(groups: Partial<Record<FACE_NAME, KokoroGroup>>) {
-		this.groups = groups;
-
-		for (const group of Object.values(groups)) {
-			for (const node of group.nodes) {
-				const cx = node.sprite.x + node.sprite.texture.width / 2;
-				const cy = node.sprite.y + node.sprite.texture.height / 2;
-				node.container.pivot.set(cx, cy);
-				node.container.position.set(cx, cy);
-			}
-		}
-	}
-
-	setFocus(x: number, y: number) {
-		const dx = (x - 0.5) * 40;
-		const dy = (y - 0.5) * 20;
-		const lGroup = this.groups.pupilL;
-		const rGroup = this.groups.pupilR;
-		if (!lGroup || !rGroup) return;
-		for (const node of [...lGroup.nodes, ...rGroup.nodes]) {
-			node.container.x = node.container.pivot.x + dx;
-			node.container.y = node.container.pivot.y + dy;
-		}
-	}
-
-	setOpenMouth(t: number) {
-		const mouth = this.groups.mouth;
-		if (!mouth) return;
-		mouth.scaleY = t;
-	}
-
-	setOpenEyeL(t: number) {
-		const eye = this.groups.eyeL;
-		const pupil = this.groups.pupilL;
-		if (!eye || !pupil) return;
-		eye.scaleY = t;
-		pupil.scaleY = t;
-	}
-
-	setOpenEyeR(t: number) {
-		const eye = this.groups.eyeR;
-		const pupil = this.groups.pupilR;
-		if (!eye || !pupil) return;
-		eye.scaleY = t;
-		pupil.scaleY = t;
-	}
-
-	setScaleEyeL(s: number) {
-		const eye = this.groups.eyeL;
-		const pupil = this.groups.pupilL;
-		if (!eye || !pupil) return;
-		eye.scaleX = s;
-		eye.scaleY = s;
-		pupil.scaleX = s;
-		pupil.scaleY = s;
-	}
-
-	setScaleEyeR(s: number) {
-		const eye = this.groups.eyeR;
-		const pupil = this.groups.pupilR;
-		if (!eye || !pupil) return;
-		eye.scaleX = s;
-		eye.scaleY = s;
-		pupil.scaleX = s;
-		pupil.scaleY = s;
 	}
 }

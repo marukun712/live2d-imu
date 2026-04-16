@@ -1,29 +1,46 @@
+import gsap from "gsap";
 import type { Template } from "./rig";
+
+const curve = {
+	power1: gsap.parseEase("power1.out"),
+	power2: gsap.parseEase("power2.out"),
+	power3: gsap.parseEase("power3.out"),
+	power4: gsap.parseEase("power4.out"),
+	inOut: gsap.parseEase("sine.inOut"),
+};
+
+function getSpatialParams(u: number, v: number) {
+	return {
+		fromTop: 1 - v,
+		fromBottom: v,
+		fromCenterX: u - 0.5,
+		fromCenterY: Math.abs(0.5 - v) * 2,
+		isUpperBody: v < 0.5,
+	};
+}
 
 export const POSE_TEMPLATES: Template = {
 	left: (u, v) => {
-		const depth = (1 - v) ** 1.2;
-		return [-35 * depth, 6 * depth * (u - 0.5)];
+		const { fromTop, fromCenterX } = getSpatialParams(u, v);
+		const depth = curve.power4(fromTop);
+		return [-50 * depth, 6 * depth * fromCenterX];
 	},
 
 	right: (u, v) => {
-		const depth = (1 - v) ** 1.2;
-		return [35 * depth, -6 * depth * (u - 0.5)];
+		const { fromTop, fromCenterX } = getSpatialParams(u, v);
+		const depth = curve.power4(fromTop);
+		return [50 * depth, -6 * depth * fromCenterX];
 	},
 
-	up: (_u, v) => [0, -40 * (1 - v) ** 0.8],
-
-	down: (_u, v) => [0, 40 * (1 - v) ** 0.8],
-
-	leanLeft: (u, v) => {
-		const dx = v < 0.5 ? -100 * (1 - 2 * v) : 25 * (2 * v - 1);
-		const tilt = 35 * (u - 0.5) * (1 - 2 * v);
-		return [dx, tilt];
+	up: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const depth = curve.power1(fromTop);
+		return [0, -40 * depth];
 	},
 
-	leanRight: (u, v) => {
-		const dx = v < 0.5 ? 100 * (1 - 2 * v) : -25 * (2 * v - 1);
-		const tilt = -35 * (u - 0.5) * (1 - 2 * v);
-		return [dx, tilt];
+	down: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const depth = curve.power1(fromTop);
+		return [0, 40 * depth];
 	},
 };

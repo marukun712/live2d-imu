@@ -1,4 +1,3 @@
-import gsap from "gsap";
 import * as PIXI from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import { drawCharacter, setupCanvas, walkPSD } from "./loader";
@@ -29,49 +28,11 @@ const rig = new KokoroRig(app, nodes, {
 	poseTemplate: POSE_TEMPLATES,
 });
 
-const anim = {
-	lookX: 0.5,
-	lookY: 0.5,
-	leanX: 0.5,
-};
-
-app.ticker.add(() => {
+window.addEventListener("pointermove", (e) => {
+	const tx = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
+	const ty = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
 	rig.setPose([
-		rig.calcBlend("left", "right", anim.lookX),
-		rig.calcBlend("up", "down", anim.lookY),
-		rig.calcBlend("leanLeft", "leanRight", anim.leanX),
+		rig.lerpBlend("up", "down", ty),
+		rig.lerpBlend("left", "right", tx),
 	]);
-});
-
-function rand(min: number, max: number) {
-	return min + Math.random() * (max - min);
-}
-
-function later(delay: number, fn: () => void) {
-	gsap.delayedCall(delay, fn);
-}
-
-function scheduleGaze() {
-	gsap.to(anim, {
-		lookX: () => rand(0.0, 1.0),
-		lookY: () => rand(0.0, 1.0),
-		duration: () => rand(0.4, 1.2),
-		ease: "sine.inOut",
-		onComplete: scheduleGaze,
-	});
-}
-
-function scheduleLean() {
-	gsap.to(anim, {
-		leanX: () => rand(0.0, 1.0),
-		duration: () => rand(0.6, 1.5),
-		ease: "sine.inOut",
-		onUpdate: () => rig.updateSway(),
-		onComplete: scheduleLean,
-	});
-}
-
-later(0.5, () => {
-	scheduleGaze();
-	scheduleLean();
 });
