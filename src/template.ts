@@ -1,4 +1,5 @@
 import gsap from "gsap";
+import { CustomEase } from "gsap/CustomEase";
 import type { Template } from "./rig";
 
 const curve = {
@@ -7,6 +8,18 @@ const curve = {
 	power3: gsap.parseEase("power3.out"),
 	power4: gsap.parseEase("power4.out"),
 	inOut: gsap.parseEase("sine.inOut"),
+	head: gsap.parseEase(
+		CustomEase.create(
+			"custom",
+			"M0,0 C0.188,0 0.774,-0.003 0.774,-0.003 0.774,-0.003 0.882,0.996 1,0.996 ",
+		),
+	),
+	body: gsap.parseEase(
+		CustomEase.create(
+			"custom",
+			"M0,0 C0.188,0 0.4,-0.003 0.4,-0.003 0.4,-0.003 0.882,0.996 1,0.996 ",
+		),
+	),
 };
 
 function getSpatialParams(u: number, v: number) {
@@ -21,26 +34,23 @@ function getSpatialParams(u: number, v: number) {
 
 export const POSE_TEMPLATES: Template = {
 	left: (u, v) => {
-		const { fromTop, fromCenterX } = getSpatialParams(u, v);
-		const depth = curve.power4(fromTop);
-		return [-50 * depth, 6 * depth * fromCenterX];
+		const { fromTop } = getSpatialParams(u, v);
+		const w = curve.body(fromTop);
+		return {
+			tx: -50,
+			ty: 0,
+			rot: -Math.PI / 12,
+			w,
+		};
 	},
-
 	right: (u, v) => {
-		const { fromTop, fromCenterX } = getSpatialParams(u, v);
-		const depth = curve.power4(fromTop);
-		return [50 * depth, -6 * depth * fromCenterX];
-	},
-
-	up: (u, v) => {
 		const { fromTop } = getSpatialParams(u, v);
-		const depth = curve.power1(fromTop);
-		return [0, -40 * depth];
-	},
-
-	down: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const depth = curve.power1(fromTop);
-		return [0, 40 * depth];
+		const w = curve.body(fromTop);
+		return {
+			tx: 50,
+			ty: 0,
+			rot: Math.PI / 12,
+			w,
+		};
 	},
 };

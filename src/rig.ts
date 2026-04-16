@@ -3,9 +3,16 @@ import type { SpriteNode } from "./loader";
 
 export const FACE_LIST = ["pupilL", "pupilR", "eyeL", "eyeR", "mouth"] as const;
 export type FACE_NAME = (typeof FACE_LIST)[number];
-export type Point = [number, number];
-export type PoseField = (u: number, v: number) => Point;
-export type Template = Record<string, PoseField>;
+
+export type Transform = {
+	tx: number;
+	ty: number;
+	rot: number;
+	w: number;
+};
+
+export type PoseTransform = (u: number, v: number) => Transform;
+export type Template = Record<string, PoseTransform>;
 
 export interface KokoroRigOptions {
 	poseTemplate: Template;
@@ -25,12 +32,13 @@ export class KokoroRig {
 		start: number;
 		end: number;
 	}> = [];
+
 	private readonly minX: number;
 	private readonly minY: number;
 	private readonly w: number;
 	private readonly h: number;
 
-	private activeFields: PoseField[] = [];
+	private activeTransform: PoseTransform[] = [];
 
 	constructor(
 		app: PIXI.Application,
@@ -41,7 +49,6 @@ export class KokoroRig {
 		this.template = poseTemplate;
 		this.power = power;
 
-		// nodeと頂点範囲の対応付け
 		let total = 0;
 		for (const node of nodes) {
 			const count =
@@ -51,12 +58,10 @@ export class KokoroRig {
 			total += count;
 		}
 
-		// 配列の初期化
 		this.origVerts = new Float32Array(total * 2);
 		this.globalOrigVerts = new Float32Array(total * 2);
 		this.verts = new Float32Array(total * 2);
 
-		// 初期状態の頂点配列とグローバル座標を保存
 		for (const { node, start, end } of this.nodeRanges) {
 			const data = node.sprite.geometry.getBuffer("aPosition")
 				.data as Float32Array;
@@ -70,13 +75,14 @@ export class KokoroRig {
 				this.globalOrigVerts[vi * 2 + 1] = data[li * 2 + 1] + oy;
 			}
 		}
+
 		this.verts.set(this.origVerts);
 
-		// 画像の縦横と最大値を求める
 		let minX = Infinity,
 			minY = Infinity,
 			maxX = -Infinity,
 			maxY = -Infinity;
+
 		for (let vi = 0; vi < total; vi++) {
 			const gx = this.globalOrigVerts[vi * 2];
 			const gy = this.globalOrigVerts[vi * 2 + 1];
@@ -85,6 +91,7 @@ export class KokoroRig {
 			if (gy < minY) minY = gy;
 			if (gy > maxY) maxY = gy;
 		}
+
 		this.minX = minX;
 		this.minY = minY;
 		this.w = maxX - minX;
@@ -93,18 +100,23 @@ export class KokoroRig {
 		app.ticker.add(() => this.tick());
 	}
 
-	public lerpBlend(from: string, to: string, t: number): PoseField {
+	public lerpBlend(from: string, to: string, t: number): PoseTransform {
 		const a = this.template[from];
 		const b = this.template[to];
 		return (u, v) => {
-			const [ax, ay] = a(u, v);
-			const [bx, by] = b(u, v);
-			return [ax + (bx - ax) * t, ay + (by - ay) * t];
+			const ta = a(u, v);
+			const tb = b(u, v);
+			return {
+				tx: ta.tx + (tb.tx - ta.tx) * t,
+				ty: ta.ty + (tb.ty - ta.ty) * t,
+				rot: ta.rot + (tb.rot - ta.rot) * t,
+				w: ta.w + (tb.w - ta.w) * t,
+			};
 		};
 	}
 
-	public setPose(fields: PoseField[]) {
-		this.activeFields = fields;
+	public setPose(transform: PoseTransform[]) {
+		this.activeTransform = transform;
 	}
 
 	private applyVerts() {
@@ -120,20 +132,39 @@ export class KokoroRig {
 	}
 
 	private tick() {
-		this.verts.set(this.origVerts);
-		const fields = this.activeFields;
+		const fields = this.activeTransform;
 		const total = this.origVerts.length / 2;
+
+		const pivotX = this.minX + this.w / 2;
+		const pivotY = this.minY + this.h;
 
 		for (let vi = 0; vi < total; vi++) {
 			const gx = this.globalOrigVerts[vi * 2];
 			const gy = this.globalOrigVerts[vi * 2 + 1];
+
 			const u = (gx - this.minX) / this.w;
 			const v = (gy - this.minY) / this.h;
 
 			for (const field of fields) {
-				const [dx, dy] = field(u, v);
-				this.verts[vi * 2] += dx * this.power;
-				this.verts[vi * 2 + 1] += dy * this.power;
+				const t = field(u, v);
+				const w = t.w;
+
+				const tx = t.tx * w;
+				const ty = t.ty * w;
+				const rot = t.rot * w;
+
+				const cos = Math.cos(rot);
+				const sin = Math.sin(rot);
+
+				const x = gx - pivotX;
+				const y = gy - pivotY;
+
+				const rx = x * cos - y * sin;
+				const ry = x * sin + y * cos;
+
+				this.verts[vi * 2] = this.origVerts[vi * 2] + tx + rx * this.power;
+				this.verts[vi * 2 + 1] =
+					this.origVerts[vi * 2 + 1] + ty + ry * this.power;
 			}
 		}
 

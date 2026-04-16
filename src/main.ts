@@ -13,6 +13,7 @@ const viewport = new Viewport({
 	worldHeight: 1000,
 	events: app.renderer.events,
 });
+
 app.stage.addChild(viewport);
 viewport.drag().pinch().wheel();
 
@@ -21,6 +22,7 @@ const nodes = drawCharacter(index);
 
 const root = new PIXI.Container();
 for (const node of nodes) root.addChild(node.container);
+
 root.scale.set(0.1);
 viewport.addChild(root);
 
@@ -30,9 +32,5 @@ const rig = new KokoroRig(app, nodes, {
 
 window.addEventListener("pointermove", (e) => {
 	const tx = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
-	const ty = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
-	rig.setPose([
-		rig.lerpBlend("up", "down", ty),
-		rig.lerpBlend("left", "right", tx),
-	]);
+	rig.setPose([rig.lerpBlend("left", "right", tx)]);
 });
