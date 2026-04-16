@@ -43,6 +43,7 @@ export class KokoroRig {
 		this.template = poseTemplate;
 		this.power = power;
 
+		// nodeと頂点範囲の対応付け
 		let total = 0;
 		for (const node of nodes) {
 			const count =
@@ -52,10 +53,12 @@ export class KokoroRig {
 			total += count;
 		}
 
+		// 配列の初期化
 		this.origVerts = new Float32Array(total * 2);
 		this.globalOrigVerts = new Float32Array(total * 2);
 		this.verts = new Float32Array(total * 2);
 
+		// 初期状態の頂点配列とグローバル座標を保存
 		for (const { node, start, end } of this.nodeRanges) {
 			const data = node.sprite.geometry.getBuffer("aPosition")
 				.data as Float32Array;
@@ -71,6 +74,7 @@ export class KokoroRig {
 		}
 		this.verts.set(this.origVerts);
 
+		// 画像の縦横と最大値を求める
 		let minX = Infinity,
 			minY = Infinity,
 			maxX = -Infinity,
@@ -97,6 +101,7 @@ export class KokoroRig {
 		return (u, v) => {
 			const [ax, ay] = a ? a(u, v) : [0, 0];
 			const [bx, by] = b ? b(u, v) : [0, 0];
+			// lerp
 			return [ax + (bx - ax) * t, ay + (by - ay) * t];
 		};
 	}
@@ -125,6 +130,7 @@ export class KokoroRig {
 			const buffer = node.sprite.geometry.getBuffer("aPosition");
 			const data = buffer.data as Float32Array;
 			for (let vi = start; vi < end; vi++) {
+				// x,yそれぞれ適用
 				data[(vi - start) * 2] = this.verts[vi * 2];
 				data[(vi - start) * 2 + 1] = this.verts[vi * 2 + 1];
 			}
@@ -140,8 +146,8 @@ export class KokoroRig {
 		for (let vi = 0; vi < total; vi++) {
 			const gx = this.globalOrigVerts[vi * 2];
 			const gy = this.globalOrigVerts[vi * 2 + 1];
-			const u = this.w === 0 ? 0.5 : (gx - this.minX) / this.w;
-			const v = this.h === 0 ? 0.5 : (gy - this.minY) / this.h;
+			const u = (gx - this.minX) / this.w;
+			const v = (gy - this.minY) / this.h;
 
 			for (const field of fields) {
 				const [dx, dy] = field(u, v);
