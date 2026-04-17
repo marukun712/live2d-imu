@@ -45,10 +45,12 @@ const rig = new KokoroRig(app, nodes, {
 const hairFrontRig = new KokoroRig(app, hairFront.nodes, {
 	poseTemplate: HAIR_TEMPLATE,
 	bounds: rigBounds,
+	parent: rig,
 });
 const hairBackRig = new KokoroRig(app, hairBack.nodes, {
 	poseTemplate: HAIR_TEMPLATE,
 	bounds: rigBounds,
+	parent: rig,
 });
 
 const params = { hairFront: 0, hairBack: 0, breathing: 0, x: 0 };

@@ -33,6 +33,7 @@ function getSpatialParams(u: number, v: number) {
 	return {
 		fromTop: 1 - v,
 		fromBottom: v,
+		fromLeft: u,
 		fromCenterX: u - 0.5,
 		fromCenterY: Math.abs(0.5 - v) * 2,
 		isUpperBody: v < 0.5,
@@ -86,8 +87,8 @@ export const HAIR_TEMPLATE: Template = {
 		const w = curve.hair(v);
 
 		return {
-			tx: 50 * swing,
-			ty: 5 * Math.abs(swing),
+			tx: 5e2 * swing,
+			ty: 15 * Math.abs(swing),
 			rot: 0,
 			w: w,
 		};

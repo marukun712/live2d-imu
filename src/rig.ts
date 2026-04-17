@@ -18,6 +18,7 @@ export interface KokoroRigOptions {
 	poseTemplate: Template;
 	bounds: Bounds;
 	power?: number;
+	parent?: KokoroRig;
 }
 
 export class KokoroRig {
@@ -40,6 +41,7 @@ export class KokoroRig {
 	private readonly h: number;
 
 	private activeTransform: PoseTransform[] = [];
+	private parent?: KokoroRig;
 
 	private time: number = 0;
 
@@ -48,9 +50,10 @@ export class KokoroRig {
 		nodes: SpriteNode[],
 		options: KokoroRigOptions,
 	) {
-		const { poseTemplate, bounds, power = 1.0 } = options;
+		const { poseTemplate, bounds, power = 1.0, parent } = options;
 		this.template = poseTemplate;
 		this.power = power;
+		this.parent = parent;
 
 		let total = 0;
 		for (const node of nodes) {
@@ -124,7 +127,11 @@ export class KokoroRig {
 	}
 
 	private tick() {
-		const fields = this.activeTransform;
+		const fields = [
+			...(this.parent?.activeTransform ?? []),
+			...this.activeTransform,
+		];
+
 		const total = this.origVerts.length / 2;
 
 		for (let vi = 0; vi < total; vi++) {
