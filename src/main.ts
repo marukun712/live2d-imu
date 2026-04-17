@@ -34,8 +34,8 @@ for (const node of nodes) root.addChild(node.container);
 root.scale.set(0.1);
 viewport.addChild(root);
 
-const hairFront = groupNodes(nodes, psdGroup("前髪"));
-const hairBack = groupNodes(nodes, psdGroup("髪"));
+const hairFront = groupNodes(nodes, psdGroup("頭"));
+const hairBack = groupNodes(nodes, psdGroup("後ろ髪"));
 const rigBounds = calcBounds(nodes);
 
 const rig = new KokoroRig(app, nodes, {
@@ -53,23 +53,7 @@ const hairBackRig = new KokoroRig(app, hairBack.nodes, {
 	parent: rig,
 });
 
-const params = { hairFront: 0, hairBack: 0, breathing: 0, x: 0 };
-
-gsap.to(params, {
-	hairFront: 1,
-	duration: 1,
-	repeat: -1,
-	delay: 0.5,
-	ease: "none",
-});
-
-gsap.to(params, {
-	hairBack: 1,
-	duration: 1,
-	repeat: -1,
-	delay: 1.0,
-	ease: "none",
-});
+const params = { breathing: 0, x: 0 };
 
 gsap.to(params, {
 	breathing: 1,
@@ -88,6 +72,7 @@ app.ticker.add(() => {
 	rig.setPose([
 		rig.lerpBlend("left", "right", params.x),
 		rig.lerpBlend("normal", "breathing", params.breathing),
+		POSE_TEMPLATES.swing,
 	]);
 	hairFrontRig.setPose([HAIR_TEMPLATE.swing]);
 	hairBackRig.setPose([HAIR_TEMPLATE.swing]);

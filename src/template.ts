@@ -27,6 +27,12 @@ const curve = {
 		"custom",
 		"M0,0 C0.067,0.132 0.336,0.049 0.6,0.3 0.742,0.436 0.822,1 1,1",
 	),
+	arms: gsap.parseEase(
+		CustomEase.create(
+			"custom",
+			"M0,0 C0.05,0 0.15,1 0.2,1 C0.35,1 0.45,0 0.45,0 C0.55,0 0.65,1 0.8,1 C0.85,1 0.95,0 1,0",
+		),
+	),
 };
 
 function getSpatialParams(u: number, v: number) {
@@ -79,16 +85,26 @@ export const POSE_TEMPLATES: Template = {
 			w,
 		};
 	},
+	swing: (u, v, t) => {
+		const { fromLeft } = getSpatialParams(u, v);
+		const swing = Math.sin(t * 0.1);
+		const w = curve.arms(fromLeft);
+		return {
+			tx: 50 * swing,
+			ty: 10 * Math.abs(swing),
+			rot: 0,
+			w: w,
+		};
+	},
 };
 
 export const HAIR_TEMPLATE: Template = {
 	swing: (_, v, t) => {
 		const swing = Math.sin(t * 0.1);
 		const w = curve.hair(v);
-
 		return {
-			tx: 5e2 * swing,
-			ty: 15 * Math.abs(swing),
+			tx: 3e2 * swing,
+			ty: 10 * Math.abs(swing),
 			rot: 0,
 			w: w,
 		};
