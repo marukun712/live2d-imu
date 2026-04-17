@@ -1,5 +1,5 @@
 import type * as PIXI from "pixi.js";
-import type { SpriteNode } from "./loader";
+import type { Bounds, SpriteNode } from "./loader";
 
 export const FACE_LIST = ["pupilL", "pupilR", "eyeL", "eyeR", "mouth"] as const;
 export type FACE_NAME = (typeof FACE_LIST)[number];
@@ -16,6 +16,7 @@ export type Template = Record<string, PoseTransform>;
 
 export interface KokoroRigOptions {
 	poseTemplate: Template;
+	bounds: Bounds;
 	power?: number;
 }
 
@@ -47,7 +48,7 @@ export class KokoroRig {
 		nodes: SpriteNode[],
 		options: KokoroRigOptions,
 	) {
-		const { poseTemplate, power = 1.0 } = options;
+		const { poseTemplate, bounds, power = 1.0 } = options;
 		this.template = poseTemplate;
 		this.power = power;
 
@@ -80,24 +81,10 @@ export class KokoroRig {
 
 		this.verts.set(this.origVerts);
 
-		let minX = Infinity,
-			minY = Infinity,
-			maxX = -Infinity,
-			maxY = -Infinity;
-
-		for (let vi = 0; vi < total; vi++) {
-			const gx = this.globalOrigVerts[vi * 2];
-			const gy = this.globalOrigVerts[vi * 2 + 1];
-			if (gx < minX) minX = gx;
-			if (gx > maxX) maxX = gx;
-			if (gy < minY) minY = gy;
-			if (gy > maxY) maxY = gy;
-		}
-
-		this.minX = minX;
-		this.minY = minY;
-		this.w = maxX - minX;
-		this.h = maxY - minY;
+		this.minX = bounds.minX;
+		this.minY = bounds.minY;
+		this.w = bounds.w;
+		this.h = bounds.h;
 
 		app.ticker.add((t) => {
 			this.tick();

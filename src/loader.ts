@@ -29,6 +29,38 @@ export interface KokoroGroup {
 
 export type GroupMatcher = (node: SpriteNode) => boolean;
 
+export interface Bounds {
+	minX: number;
+	minY: number;
+	w: number;
+	h: number;
+}
+
+export function calcBounds(nodes: SpriteNode[]): Bounds {
+	let minX = Infinity,
+		minY = Infinity,
+		maxX = -Infinity,
+		maxY = -Infinity;
+
+	for (const node of nodes) {
+		const data = node.sprite.geometry.getBuffer("aPosition")
+			.data as Float32Array;
+		const ox = node.sprite.x + node.container.x;
+		const oy = node.sprite.y + node.container.y;
+		const count = data.length / 2;
+		for (let i = 0; i < count; i++) {
+			const gx = data[i * 2] + ox;
+			const gy = data[i * 2 + 1] + oy;
+			if (gx < minX) minX = gx;
+			if (gx > maxX) maxX = gx;
+			if (gy < minY) minY = gy;
+			if (gy > maxY) maxY = gy;
+		}
+	}
+
+	return { minX, minY, w: maxX - minX, h: maxY - minY };
+}
+
 export async function setupCanvas(parent: HTMLElement) {
 	const app = (async () => {
 		initializeCanvas((width, height) => {
