@@ -11,7 +11,7 @@ export type Transform = {
 	w: number;
 };
 
-export type PoseTransform = (u: number, v: number) => Transform;
+export type PoseTransform = (u: number, v: number, t: number) => Transform;
 export type Template = Record<string, PoseTransform>;
 
 export interface KokoroRigOptions {
@@ -39,6 +39,8 @@ export class KokoroRig {
 	private readonly h: number;
 
 	private activeTransform: PoseTransform[] = [];
+
+	private time: number = 0;
 
 	constructor(
 		app: PIXI.Application,
@@ -97,15 +99,18 @@ export class KokoroRig {
 		this.w = maxX - minX;
 		this.h = maxY - minY;
 
-		app.ticker.add(() => this.tick());
+		app.ticker.add((t) => {
+			this.tick();
+			this.time += t.deltaTime;
+		});
 	}
 
 	public lerpBlend(from: string, to: string, t: number): PoseTransform {
 		const a = this.template[from];
 		const b = this.template[to];
 		return (u, v) => {
-			const ta = a(u, v);
-			const tb = b(u, v);
+			const ta = a(u, v, this.time);
+			const tb = b(u, v, this.time);
 			return {
 				tx: ta.tx + (tb.tx - ta.tx) * t,
 				ty: ta.ty + (tb.ty - ta.ty) * t,
@@ -135,9 +140,6 @@ export class KokoroRig {
 		const fields = this.activeTransform;
 		const total = this.origVerts.length / 2;
 
-		const pivotX = this.minX + this.w / 2;
-		const pivotY = this.minY + this.h;
-
 		for (let vi = 0; vi < total; vi++) {
 			const gx = this.globalOrigVerts[vi * 2];
 			const gy = this.globalOrigVerts[vi * 2 + 1];
@@ -145,27 +147,34 @@ export class KokoroRig {
 			const u = (gx - this.minX) / this.w;
 			const v = (gy - this.minY) / this.h;
 
+			let totalTx = 0;
+			let totalTy = 0;
+			let totalRot = 0;
+
 			for (const field of fields) {
-				const t = field(u, v);
+				const t = field(u, v, this.time);
 				const w = t.w;
 
-				const tx = t.tx * w;
-				const ty = t.ty * w;
-				const rot = t.rot * w;
-
-				const cos = Math.cos(rot);
-				const sin = Math.sin(rot);
-
-				const x = gx - pivotX;
-				const y = gy - pivotY;
-
-				const rx = x * cos - y * sin;
-				const ry = x * sin + y * cos;
-
-				this.verts[vi * 2] = this.origVerts[vi * 2] + tx + rx * this.power;
-				this.verts[vi * 2 + 1] =
-					this.origVerts[vi * 2 + 1] + ty + ry * this.power;
+				totalTx += t.tx * w;
+				totalTy += t.ty * w;
+				totalRot += t.rot * w;
 			}
+
+			const cos = Math.cos(totalRot);
+			const sin = Math.sin(totalRot);
+
+			const pivotX = this.minX + this.w / 2;
+			const pivotY = this.minY + this.h;
+
+			const x = gx - pivotX;
+			const y = gy - pivotY;
+
+			const rx = x * cos - y * sin;
+			const ry = x * sin + y * cos;
+
+			this.verts[vi * 2] = this.origVerts[vi * 2] + totalTx + rx * this.power;
+			this.verts[vi * 2 + 1] =
+				this.origVerts[vi * 2 + 1] + totalTy + ry * this.power;
 		}
 
 		this.applyVerts();

@@ -11,17 +11,21 @@ const curve = {
 	head: gsap.parseEase(
 		CustomEase.create(
 			"custom",
-			"M0,0 C0.188,0 0.774,-0.003 0.774,-0.003 0.774,-0.003 0.882,0.996 1,0.996 ",
+			"M0,0 C0.188,0 0.774,-0.003 0.774,-0.003 0.774,-0.003 0.882,0.996 1,0.996",
 		),
 	),
 	body: gsap.parseEase(
 		CustomEase.create(
 			"custom",
-			"M0,0 C0.188,0 0.4,-0.003 0.4,-0.003 0.4,-0.003 0.882,0.996 1,0.996 ",
+			"M0,0 C0.188,0 0.4,-0.003 0.4,-0.003 0.4,-0.003 0.882,0.996 1,0.996",
 		),
 	),
 	chest: gsap.parseEase(
-		CustomEase.create("custom", "M0,0 C0.25,0 0.25,1 0.5,1 0.75,1 0.75,0 1,0"),
+		CustomEase.create("custom", "M0,0 C0.35,0 0.55,1 0.6,1 0.7,1 0.8,0 1,0"),
+	),
+	hair: CustomEase.create(
+		"custom",
+		"M0,0 C0.067,0.132 0.336,0.049 0.6,0.3 0.742,0.436 0.822,1 1,1",
 	),
 };
 
@@ -38,22 +42,54 @@ function getSpatialParams(u: number, v: number) {
 export const POSE_TEMPLATES: Template = {
 	left: (u, v) => {
 		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.chest(fromTop);
+		const w = curve.inOut(fromTop);
 		return {
-			tx: -50,
+			tx: -40,
 			ty: 0,
-			rot: -Math.PI / 12,
+			rot: -0.3,
 			w,
 		};
 	},
 	right: (u, v) => {
 		const { fromTop } = getSpatialParams(u, v);
+		const w = curve.inOut(fromTop);
+		return {
+			tx: 40,
+			ty: 0,
+			rot: 0.3,
+			w,
+		};
+	},
+	normal: () => {
+		return {
+			tx: 0,
+			ty: 0,
+			rot: 0,
+			w: 0,
+		};
+	},
+	breathing: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
 		const w = curve.chest(fromTop);
 		return {
-			tx: 50,
-			ty: 0,
-			rot: Math.PI / 12,
+			tx: 0,
+			ty: 40,
+			rot: 0,
 			w,
+		};
+	},
+};
+
+export const HAIR_TEMPLATE: Template = {
+	swing: (_, v, t) => {
+		const swing = Math.sin(t * 0.1);
+		const w = curve.hair(v);
+
+		return {
+			tx: 50 * swing,
+			ty: 5 * Math.abs(swing),
+			rot: 0,
+			w: w,
 		};
 	},
 };
