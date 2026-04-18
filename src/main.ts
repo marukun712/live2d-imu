@@ -34,13 +34,20 @@ for (const node of nodes) root.addChild(node.container);
 root.scale.set(0.1);
 viewport.addChild(root);
 
-const hairFront = groupNodes(nodes, psdGroup("前髪"));
-const hairBack = groupNodes(nodes, psdGroup("後ろ髪"));
+const hairFront = groupNodes(nodes, psdGroup("!前髪"));
+const hairBack = groupNodes(nodes, psdGroup("!後髪"));
+const arm = groupNodes(nodes, psdGroup("!手前腕"));
+
 const rigBounds = calcBounds(nodes);
 
 const rig = new KokoroRig(app, nodes, {
 	poseTemplate: POSE_TEMPLATES,
 	bounds: rigBounds,
+});
+const armRig = new KokoroRig(app, arm.nodes, {
+	poseTemplate: POSE_TEMPLATES,
+	bounds: rigBounds,
+	parent: rig,
 });
 const hairFrontRig = new KokoroRig(app, hairFront.nodes, {
 	poseTemplate: HAIR_TEMPLATE,
@@ -72,9 +79,10 @@ window.addEventListener("pointermove", (e) => {
 app.ticker.add(() => {
 	rig.setPose([
 		rig.lerpBlend("left", "right", params.x),
+		rig.lerpBlend("up", "down", params.y),
 		rig.lerpBlend("normal", "breathing", params.breathing),
-		POSE_TEMPLATES.swing,
 	]);
+	armRig.setPose([POSE_TEMPLATES.swing]);
 	hairFrontRig.setPose([HAIR_TEMPLATE.swing]);
 	hairBackRig.setPose([HAIR_TEMPLATE.swing]);
 });
