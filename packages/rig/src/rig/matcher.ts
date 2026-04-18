@@ -1,41 +1,48 @@
-import { initializeCanvas, type Layer, readPsd } from "ag-psd";
-import * as PIXI from "pixi.js";
+import type { SpriteNode } from "../image/psd";
 
-export interface PSDIndex {
-	name: string;
-	path: string[];
-	canvas: HTMLCanvasElement;
-	x: number;
-	y: number;
-	clipping: boolean;
-}
-
-export interface SpriteNode {
-	name: string;
-	path: string[];
-	container: PIXI.Container;
-	sprite: PIXI.MeshPlane;
-}
-
+/** 複数の {@link SpriteNode} をまとめて操作するグループ */
 export interface KokoroGroup {
+	/** グループに含まれるノード一覧 */
 	nodes: SpriteNode[];
+	/** 全ノードの X 座標 */
 	x: number;
+	/** 全ノードの Y 座標 */
 	y: number;
+	/** 全ノードのアルファ値 */
 	alpha: number;
+	/** 全ノードの表示状態 */
 	visible: boolean;
+	/** 全ノードの X スケール */
 	scaleX: number;
+	/** 全ノードの Y スケール */
 	scaleY: number;
 }
 
+/**
+ * ノードをグループに含めるかを判定する関数。
+ * {@link byName}, {@link byPath}, {@link psdGroup}, {@link pipe} で生成できる。
+ */
 export type GroupMatcher = (node: SpriteNode) => boolean;
 
+/** ノード群の AABB */
 export interface Bounds {
+	/** 最小 X */
 	minX: number;
+	/** 最小 Y */
 	minY: number;
+	/** 横幅 */
 	w: number;
+	/** 縦幅 */
 	h: number;
 }
 
+/**
+ * ノード群のメッシュ頂点から AABB を計算する。
+ * Container の座標オフセットも加味したワールド空間での値を返す。
+ *
+ * @param nodes - 対象ノードの配列
+ * @returns {@link Bounds}
+ */
 export function calcBounds(nodes: SpriteNode[]): Bounds {
 	let minX = Infinity,
 		minY = Infinity,
@@ -61,80 +68,14 @@ export function calcBounds(nodes: SpriteNode[]): Bounds {
 	return { minX, minY, w: maxX - minX, h: maxY - minY };
 }
 
-export async function setupCanvas(parent: HTMLElement) {
-	const app = (async () => {
-		initializeCanvas((width, height) => {
-			const canvas = document.createElement("canvas");
-			canvas.width = width;
-			canvas.height = height;
-			return canvas;
-		});
-
-		const app = new PIXI.Application();
-		await app.init({
-			resizeTo: window,
-			backgroundColor: 0xffffff,
-		});
-		parent.appendChild(app.canvas);
-		return app;
-	})();
-
-	return await app;
-}
-
-export async function walkPSD(url: string, skip?: Set<string>) {
-	const res = await fetch(url);
-	const psd = readPsd(await res.arrayBuffer());
-
-	const result: PSDIndex[] = [];
-
-	function walk(layer: Layer, path: string[]) {
-		if (!layer.name || layer.hidden || skip?.has(layer.name)) return;
-		const nextPath = [...path, layer.name.trim()];
-		if (layer.children) {
-			layer.children.forEach((l) => {
-				walk(l, nextPath);
-			});
-		} else if (layer.canvas) {
-			result.push({
-				name: layer.name.trim(),
-				path: nextPath,
-				canvas: layer.canvas,
-				x: layer.left ?? 0,
-				y: layer.top ?? 0,
-				clipping: layer.clipping ?? false,
-			});
-		}
-	}
-
-	psd.children?.forEach((l) => {
-		walk(l, []);
-	});
-	return result;
-}
-
-export function drawCharacter(layers: PSDIndex[]) {
-	const nodes: SpriteNode[] = [];
-
-	for (const layer of layers) {
-		const sprite = new PIXI.MeshPlane({
-			texture: PIXI.Texture.from(layer.canvas),
-			verticesX: 5,
-			verticesY: 5,
-		});
-		sprite.x = layer.x;
-		sprite.y = layer.y;
-
-		if (!layer.clipping) {
-			const container = new PIXI.Container();
-			container.addChild(sprite);
-			nodes.push({ name: layer.name, path: layer.path, container, sprite });
-		}
-	}
-
-	return nodes;
-}
-
+/**
+ * {@link GroupMatcher} でフィルタしたノードを {@link KokoroGroup} にまとめる。
+ * x / y / alpha などのプロパティを変更すると全ノードの Container に一括反映される。
+ *
+ * @param nodes - 全ノード
+ * @param matcher - 絞り込み条件
+ * @returns {@link KokoroGroup}
+ */
 export function groupNodes(
 	nodes: SpriteNode[],
 	matcher: GroupMatcher,
@@ -142,7 +83,7 @@ export function groupNodes(
 	const matched = nodes.filter(matcher);
 	const containers = matched.map((n) => n.container);
 
-	const group: KokoroGroup = {
+	return {
 		nodes: matched,
 		get x() {
 			return containers[0]?.x ?? 0;
@@ -193,25 +134,46 @@ export function groupNodes(
 			});
 		},
 	};
-
-	return group;
 }
 
+/**
+ * レイヤー名が完全一致するノードにマッチする。
+ *
+ * @param name - 対象のレイヤー名
+ */
 export function byName(name: string): GroupMatcher {
 	return (n) => n.name === name;
 }
 
+/**
+ * パスの末尾が指定した配列と一致するノードにマッチする。
+ *
+ * @example
+ * byPath(["body", "arm"]) // path が [..., "body", "arm"] で終わるノード
+ */
 export function byPath(path: string[]): GroupMatcher {
 	return (n) =>
 		path.every((seg, i) => n.path[n.path.length - path.length + i] === seg);
 }
 
+/**
+ * 指定したグループ名をパスに含み、除外グループを含まないノードにマッチする。
+ *
+ * @param groupName - 含むべきグループ名
+ * @param negative  - 除外するグループ名の配列
+ */
 export function psdGroup(groupName: string, negative?: string[]): GroupMatcher {
 	return (n) =>
 		n.path.includes(groupName) &&
 		!negative?.some((neg) => n.path.includes(neg));
 }
 
+/**
+ * 複数の {@link GroupMatcher} を結合する。
+ * いずれか1つでも true を返せばマッチとみなす。
+ *
+ * @param matchers - 結合する matcher の配列
+ */
 export function pipe(...matchers: GroupMatcher[]): GroupMatcher {
 	return (n) => matchers.some((m) => m(n));
 }
