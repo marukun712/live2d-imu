@@ -44,7 +44,7 @@
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w=="],
 
-    "@kokoro/rig": ["@jsr/kokoro__rig@0.1.0", "https://npm.jsr.io/~/11/@jsr/kokoro__rig/0.1.0.tgz", { "dependencies": { "ag-psd": "^30.1.1", "gsap": "^3.15.0", "pixi.js": "^8.18.1" } }, "sha512-MXng8+NFO1RzN17AolEZHSJVSq6nJnDRSLfSDaFBBKV4GP+ZGdDOGCdELzPUpLcwGr+GYKN42uOqbHdUEYEmyQ=="],
+    "@kokoro/rig": ["@jsr/kokoro__rig@0.1.1", "https://npm.jsr.io/~/11/@jsr/kokoro__rig/0.1.1.tgz", { "dependencies": { "ag-psd": "^30.1.1", "gsap": "^3.15.0", "pixi.js": "^8.18.1" } }, "sha512-LKrXiuMpVvCcNTnX7V0UZH/v3gq+oVKZr7vXIgHx6PeSZgXrByG1wGbONJ/a1nLWk33ufzJ21u0HaSonTIQ2ig=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow=="],
 
