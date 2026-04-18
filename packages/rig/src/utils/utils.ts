@@ -67,10 +67,14 @@ export function getSpatialParams(u: number, v: number): SpatialParams {
  *
  * @param u     - 水平方向の正規化座標 (0=左, 1=右)
  * @param angle - 回転角度(ラジアン)。正で右回転
+ * @param fov - 視野角
  * @returns 変位ウェイト
  */
-export function getCylinderWeight(u: number, angle: number): number {
-	const fov = Math.PI;
+export function getCylinderWeight(
+	u: number,
+	angle: number,
+	fov: number = Math.PI,
+): number {
 	const theta = (u - 0.5) * fov;
 	const origX = Math.sin(theta);
 	const newX = Math.sin(theta + angle);

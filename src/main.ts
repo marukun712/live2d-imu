@@ -1,16 +1,19 @@
-import gsap from "gsap";
-import * as PIXI from "pixi.js";
-import { Viewport } from "pixi-viewport";
 import {
 	calcBounds,
+	curve,
 	drawCharacter,
+	getCylinderWeight,
+	getSpatialParams,
 	groupNodes,
+	KokoroRig,
 	psdGroup,
 	setupCanvas,
+	type Template,
 	walkPSD,
-} from "./loader";
-import { KokoroRig, type Template } from "./rig";
-import { curve, getCylinderWeight, getSpatialParams } from "./template";
+} from "@kokoro/rig";
+import gsap from "gsap";
+import { Container } from "pixi.js";
+import { Viewport } from "pixi-viewport";
 
 const POSE_TEMPLATES: Template = {
 	left: (u, v) => {
@@ -18,7 +21,7 @@ const POSE_TEMPLATES: Template = {
 		const depth = getCylinderWeight(u, -0.5);
 		const w = curve.body(fromTop) * depth;
 		return {
-			tx: -3e2,
+			tx: -1e2,
 			ty: 0,
 			rot: -0.1,
 			w: w,
@@ -40,7 +43,7 @@ const POSE_TEMPLATES: Template = {
 		const w = curve.body(fromTop);
 		return {
 			tx: 0,
-			ty: -1e2,
+			ty: -2e2,
 			rot: 0,
 			w: w,
 		};
@@ -114,7 +117,7 @@ viewport.drag().pinch().wheel();
 const index = await walkPSD("/models/character.psd");
 const nodes = drawCharacter(index);
 
-const root = new PIXI.Container();
+const root = new Container();
 for (const node of nodes) root.addChild(node.container);
 
 root.scale.set(0.1);
