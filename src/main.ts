@@ -34,7 +34,7 @@ for (const node of nodes) root.addChild(node.container);
 root.scale.set(0.1);
 viewport.addChild(root);
 
-const hairFront = groupNodes(nodes, psdGroup("頭"));
+const hairFront = groupNodes(nodes, psdGroup("前髪"));
 const hairBack = groupNodes(nodes, psdGroup("後ろ髪"));
 const rigBounds = calcBounds(nodes);
 
@@ -53,7 +53,7 @@ const hairBackRig = new KokoroRig(app, hairBack.nodes, {
 	parent: rig,
 });
 
-const params = { breathing: 0, x: 0 };
+const params = { breathing: 0, x: 0.5, y: 0.5 };
 
 gsap.to(params, {
 	breathing: 1,
@@ -66,6 +66,7 @@ gsap.to(params, {
 
 window.addEventListener("pointermove", (e) => {
 	params.x = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
+	params.y = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
 });
 
 app.ticker.add(() => {
