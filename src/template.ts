@@ -1,8 +1,7 @@
 import gsap from "gsap";
 import { CustomEase } from "gsap/CustomEase";
-import type { Template } from "./rig";
 
-const curve = {
+export const curve = {
 	power1: gsap.parseEase("power1.in"),
 	power2: gsap.parseEase("power2.in"),
 	power3: gsap.parseEase("power3.in"),
@@ -29,7 +28,7 @@ const curve = {
 	),
 };
 
-function getSpatialParams(u: number, v: number) {
+export function getSpatialParams(u: number, v: number) {
 	return {
 		fromTop: 1 - v,
 		fromBottom: v,
@@ -40,7 +39,7 @@ function getSpatialParams(u: number, v: number) {
 	};
 }
 
-function getCylinderWeight(u: number, angle: number) {
+export function getCylinderWeight(u: number, angle: number) {
 	const fov = Math.PI;
 	const theta = (u - 0.5) * fov;
 
@@ -50,89 +49,3 @@ function getCylinderWeight(u: number, angle: number) {
 	const centerDiff = Math.sin(angle);
 	return (newX - origX) / centerDiff;
 }
-
-export const POSE_TEMPLATES: Template = {
-	left: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const depth = getCylinderWeight(u, -0.5);
-		const w = curve.body(fromTop) * depth;
-		return {
-			tx: -3e2,
-			ty: 0,
-			rot: -0.1,
-			w: w,
-		};
-	},
-	right: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const depth = getCylinderWeight(u, 0.5);
-		const w = curve.body(fromTop) * depth;
-		return {
-			tx: 1e2,
-			ty: 0,
-			rot: 0.1,
-			w: w,
-		};
-	},
-	up: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.body(fromTop);
-		return {
-			tx: 0,
-			ty: -1e2,
-			rot: 0,
-			w: w,
-		};
-	},
-	down: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.body(fromTop);
-		return {
-			tx: 0,
-			ty: 0,
-			rot: 0,
-			w: w,
-		};
-	},
-	normal: () => {
-		return {
-			tx: 0,
-			ty: 0,
-			rot: 0,
-			w: 0,
-		};
-	},
-	breathing: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.chest(fromTop);
-		return {
-			tx: 0,
-			ty: 40,
-			rot: 0,
-			w,
-		};
-	},
-	swing: (_, v, t) => {
-		const swing = Math.sin(t * 0.1);
-		const w = curve.power1(v);
-		return {
-			tx: 3e2 * swing,
-			ty: 10 * Math.abs(swing),
-			rot: 0,
-			w: w,
-		};
-	},
-};
-
-export const HAIR_TEMPLATE: Template = {
-	swing: (_, v, t) => {
-		const swing = Math.sin(t * 0.1);
-		const w = curve.hair(v);
-		return {
-			tx: 3e2 * swing,
-			ty: 10 * Math.abs(swing),
-			rot: 0,
-			w: w,
-		};
-	},
-};

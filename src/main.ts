@@ -9,8 +9,94 @@ import {
 	setupCanvas,
 	walkPSD,
 } from "./loader";
-import { KokoroRig } from "./rig";
-import { HAIR_TEMPLATE, POSE_TEMPLATES } from "./template";
+import { KokoroRig, type Template } from "./rig";
+import { curve, getCylinderWeight, getSpatialParams } from "./template";
+
+const POSE_TEMPLATES: Template = {
+	left: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const depth = getCylinderWeight(u, -0.5);
+		const w = curve.body(fromTop) * depth;
+		return {
+			tx: -3e2,
+			ty: 0,
+			rot: -0.1,
+			w: w,
+		};
+	},
+	right: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const depth = getCylinderWeight(u, 0.5);
+		const w = curve.body(fromTop) * depth;
+		return {
+			tx: 1e2,
+			ty: 0,
+			rot: 0.1,
+			w: w,
+		};
+	},
+	up: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const w = curve.body(fromTop);
+		return {
+			tx: 0,
+			ty: -1e2,
+			rot: 0,
+			w: w,
+		};
+	},
+	down: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const w = curve.body(fromTop);
+		return {
+			tx: 0,
+			ty: 0,
+			rot: 0,
+			w: w,
+		};
+	},
+	normal: () => {
+		return {
+			tx: 0,
+			ty: 0,
+			rot: 0,
+			w: 0,
+		};
+	},
+	breathing: (u, v) => {
+		const { fromTop } = getSpatialParams(u, v);
+		const w = curve.chest(fromTop);
+		return {
+			tx: 0,
+			ty: 40,
+			rot: 0,
+			w,
+		};
+	},
+	swing: (_, v, t) => {
+		const swing = Math.sin(t * 0.1);
+		const w = curve.power1(v);
+		return {
+			tx: 3e2 * swing,
+			ty: 10 * Math.abs(swing),
+			rot: 0,
+			w: w,
+		};
+	},
+};
+
+const HAIR_TEMPLATE: Template = {
+	swing: (_, v, t) => {
+		const swing = Math.sin(t * 0.1);
+		const w = curve.hair(v);
+		return {
+			tx: 3e2 * swing,
+			ty: 10 * Math.abs(swing),
+			rot: 0,
+			w: w,
+		};
+	},
+};
 
 const app = await setupCanvas(document.body);
 
