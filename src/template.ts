@@ -41,7 +41,7 @@ function getSpatialParams(u: number, v: number) {
 }
 
 function getCylinderWeight(u: number, angle: number) {
-	const fov = Math.PI * 1.5;
+	const fov = Math.PI;
 	const theta = (u - 0.5) * fov;
 
 	const origX = Math.sin(theta);
@@ -59,7 +59,7 @@ export const POSE_TEMPLATES: Template = {
 		return {
 			tx: -3e2,
 			ty: 0,
-			rot: 0,
+			rot: -0.1,
 			w: w,
 		};
 	},
@@ -68,9 +68,9 @@ export const POSE_TEMPLATES: Template = {
 		const depth = getCylinderWeight(u, 0.5);
 		const w = curve.body(fromTop) * depth;
 		return {
-			tx: 3e2,
+			tx: 1e2,
 			ty: 0,
-			rot: 0,
+			rot: 0.1,
 			w: w,
 		};
 	},
@@ -79,7 +79,7 @@ export const POSE_TEMPLATES: Template = {
 		const w = curve.body(fromTop);
 		return {
 			tx: 0,
-			ty: -3e2,
+			ty: -1e2,
 			rot: 0,
 			w: w,
 		};
