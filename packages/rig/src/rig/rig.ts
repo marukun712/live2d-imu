@@ -10,7 +10,7 @@ export interface Transform {
 	ty: number;
 	/** 回転角 (ラジアン) */
 	rot: number;
-	/** この変形の寄与ウェイト(0〜1) */
+	/** この変形のウェイト(0~1) */
 	w: number;
 }
 
