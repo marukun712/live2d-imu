@@ -1,7 +1,7 @@
 import type { Template } from "../rig/rig";
 import { curve, getSpatialParams } from "../utils/utils";
 
-export const POSE_TEMPLATES: Template = {
+export const POSE_TEMPLATE: Template = {
 	left: (u, v) => {
 		const { fromLeft, fromTop } = getSpatialParams(u, v);
 		const w = curve.body(fromTop);

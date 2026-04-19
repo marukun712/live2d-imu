@@ -7,7 +7,7 @@ import {
 	HAIR_TEMPLATE,
 	KokoroFace,
 	KokoroRig,
-	POSE_TEMPLATES,
+	POSE_TEMPLATE,
 	pipe,
 	psdGroup,
 	setupCanvas,
@@ -50,11 +50,11 @@ const arm = groupNodes(nodes, psdGroup("!手前腕"));
 const rigBounds = calcBounds(nodes);
 
 const rig = new KokoroRig(app, nodes, {
-	poseTemplate: POSE_TEMPLATES,
+	poseTemplate: POSE_TEMPLATE,
 	bounds: rigBounds,
 });
 const armRig = new KokoroRig(app, arm.nodes, {
-	poseTemplate: POSE_TEMPLATES,
+	poseTemplate: POSE_TEMPLATE,
 	bounds: rigBounds,
 	parent: rig,
 });
