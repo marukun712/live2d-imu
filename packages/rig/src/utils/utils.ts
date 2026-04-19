@@ -61,24 +61,3 @@ export function getSpatialParams(u: number, v: number): SpatialParams {
 		isUpperBody: v < 0.5,
 	};
 }
-
-/**
- * 円柱を水平回転させたときの各 X 位置の変位ウェイトを計算する。
- * キャラクターを立体的に左右回転させる際に使用する。
- *
- * @param u     - 水平方向の正規化座標 (0=左, 1=右)
- * @param angle - 回転角度(ラジアン)。正で右回転
- * @param fov - 視野角
- * @returns 変位ウェイト
- */
-export function getCylinderWeight(
-	u: number,
-	angle: number,
-	fov: number = Math.PI,
-): number {
-	const theta = (u - 0.5) * fov;
-	const origX = Math.sin(theta);
-	const newX = Math.sin(theta + angle);
-	const centerDiff = Math.sin(angle);
-	return (newX - origX) / centerDiff;
-}

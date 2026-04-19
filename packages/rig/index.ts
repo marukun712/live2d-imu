@@ -3,4 +3,5 @@ export * from "./src/image/psd";
 export * from "./src/rig/face";
 export * from "./src/rig/matcher";
 export * from "./src/rig/rig";
+export * from "./src/template/template.ts";
 export * from "./src/utils/utils.ts";

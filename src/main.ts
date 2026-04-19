@@ -2,108 +2,20 @@ import {
 	byName,
 	byPath,
 	calcBounds,
-	curve,
 	drawCharacter,
-	getCylinderWeight,
-	getSpatialParams,
 	groupNodes,
+	HAIR_TEMPLATE,
 	KokoroFace,
 	KokoroRig,
+	POSE_TEMPLATES,
 	pipe,
 	psdGroup,
 	setupCanvas,
-	type Template,
 	walkPSD,
 } from "@kokoro/rig";
 import gsap from "gsap";
 import { Container } from "pixi.js";
 import { Viewport } from "pixi-viewport";
-
-const POSE_TEMPLATES: Template = {
-	left: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const depth = getCylinderWeight(u, -0.5);
-		const w = curve.body(fromTop) * depth;
-		return {
-			tx: -100,
-			ty: 0,
-			rot: -0.15,
-			w: w,
-		};
-	},
-	right: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const depth = getCylinderWeight(u, 0.5);
-		const w = curve.body(fromTop) * depth;
-		return {
-			tx: 100,
-			ty: 0,
-			rot: 0.15,
-			w: w,
-		};
-	},
-	up: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.body(fromTop);
-		return {
-			tx: 0,
-			ty: -200,
-			rot: 0,
-			w: w,
-		};
-	},
-	down: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.body(fromTop);
-		return {
-			tx: 0,
-			ty: 0,
-			rot: 0,
-			w: w,
-		};
-	},
-	normal: () => {
-		return {
-			tx: 0,
-			ty: 0,
-			rot: 0,
-			w: 0,
-		};
-	},
-	breathing: (u, v) => {
-		const { fromTop } = getSpatialParams(u, v);
-		const w = curve.chest(fromTop);
-		return {
-			tx: 0,
-			ty: 40,
-			rot: 0,
-			w,
-		};
-	},
-	swing: (_, v, t) => {
-		const swing = Math.sin(t * 0.1);
-		const w = curve.power1(v);
-		return {
-			tx: 300 * swing,
-			ty: 10 * Math.abs(swing),
-			rot: 0,
-			w: w,
-		};
-	},
-};
-
-const HAIR_TEMPLATE: Template = {
-	swing: (_, v, t) => {
-		const swing = Math.sin(t * 0.1);
-		const w = curve.hair(v);
-		return {
-			tx: 300 * swing,
-			ty: 10 * Math.abs(swing),
-			rot: 0,
-			w: w,
-		};
-	},
-};
 
 const app = await setupCanvas(document.body);
 
@@ -245,7 +157,7 @@ gsap.to(params, {
 	breathing: 1,
 	duration: 1.2,
 	ease: "sine.inOut",
-	repeat: -1,
+	repeat: 0,
 	yoyo: true,
 });
 
@@ -267,6 +179,12 @@ app.ticker.add(() => {
 		rig.lerpBlend("normal", "breathing", params.breathing),
 	]);
 	armRig.setPose([POSE_TEMPLATES.swing]);
-	hairFrontRig.setPose([HAIR_TEMPLATE.swing]);
-	hairBackRig.setPose([HAIR_TEMPLATE.swing]);
+	hairFrontRig.setPose([
+		hairFrontRig.lerpBlend("leftFront", "rightFront", params.x),
+		HAIR_TEMPLATE.swing,
+	]);
+	hairBackRig.setPose([
+		hairBackRig.lerpBlend("leftBack", "rightBack", params.x),
+		HAIR_TEMPLATE.swing,
+	]);
 });
