@@ -45,7 +45,7 @@ viewport.addChild(root);
 
 const hairFront = groupNodes(nodes, psdGroup("!前髪"));
 const hairBack = groupNodes(nodes, psdGroup("!後髪"));
-const arm = groupNodes(nodes, psdGroup("!手前腕"));
+const arm = groupNodes(nodes, pipe(psdGroup("!手前腕"), psdGroup("胸装飾")));
 
 const rigBounds = calcBounds(nodes);
 

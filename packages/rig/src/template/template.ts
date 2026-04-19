@@ -71,7 +71,7 @@ export const POSE_TEMPLATE: Template = {
 	},
 	swing: (_, v, t) => {
 		const swing = Math.sin(t * 0.1);
-		const w = curve.power1(v);
+		const w = curve.power2(v);
 		return {
 			tx: 300 * swing,
 			ty: 10 * Math.abs(swing),
@@ -83,8 +83,8 @@ export const POSE_TEMPLATE: Template = {
 
 export const HAIR_TEMPLATE: Template = {
 	swing: (_, v, t) => {
-		const swing = Math.sin(t * 0.1);
-		const w = curve.hair(v);
+		const swing = Math.sin(t * 0.05);
+		const w = curve.power1(v);
 		return {
 			tx: 300 * swing,
 			ty: 10 * Math.abs(swing),
@@ -93,8 +93,8 @@ export const HAIR_TEMPLATE: Template = {
 		};
 	},
 	// 前髪と後ろ髪で移動量をずらして、視差をつくる
-	leftFront: (_, v) => ({ tx: -800, ty: 0, rot: -0.08, w: curve.hair(v) }),
-	rightFront: (_, v) => ({ tx: 800, ty: 0, rot: 0.08, w: curve.hair(v) }),
-	leftBack: (_, v) => ({ tx: 400, ty: 0, rot: -0.02, w: curve.hair(v) }),
-	rightBack: (_, v) => ({ tx: -400, ty: 0, rot: 0.02, w: curve.hair(v) }),
+	leftFront: (_, v) => ({ tx: -800, ty: 0, rot: -0.08, w: curve.power1(v) }),
+	rightFront: (_, v) => ({ tx: 800, ty: 0, rot: 0.08, w: curve.power1(v) }),
+	leftBack: (_, v) => ({ tx: 400, ty: 0, rot: -0.02, w: curve.power1(v) }),
+	rightBack: (_, v) => ({ tx: -400, ty: 0, rot: 0.02, w: curve.power1(v) }),
 };

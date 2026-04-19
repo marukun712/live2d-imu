@@ -28,10 +28,6 @@ export const curve: Curve = {
 	chest: gsap.parseEase(
 		CustomEase.create("custom", "M0,0 C0.35,0 0.55,1 0.6,1 0.7,1 0.8,0 1,0"),
 	),
-	hair: CustomEase.create(
-		"custom",
-		"M0,0 C0.067,0.132 0.336,0.049 0.6,0.3 0.742,0.436 0.822,1 1,1",
-	),
 } as const;
 
 /** {@link getSpatialParams} の戻り値 */
