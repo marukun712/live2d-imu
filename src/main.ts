@@ -178,7 +178,7 @@ app.ticker.add(() => {
 		rig.lerpBlend("up", "down", params.y),
 		rig.lerpBlend("normal", "breathing", params.breathing),
 	]);
-	armRig.setPose([POSE_TEMPLATES.swing]);
+	armRig.setPose([POSE_TEMPLATE.swing]);
 	hairFrontRig.setPose([
 		hairFrontRig.lerpBlend("leftFront", "rightFront", params.x),
 		HAIR_TEMPLATE.swing,
