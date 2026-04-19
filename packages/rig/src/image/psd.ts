@@ -36,8 +36,9 @@ export interface SpriteNode {
  * PSD ファイルを取得してレイヤーを再帰的に走査し、フラットな配列で返す。
  * グループレイヤーは展開され、末端レイヤーのみが含まれる。
  *
- * @param url - PSD ファイルの URL
- * @param skip - スキップするレイヤー名のセット
+ * @param url     - PSD ファイルの URL
+ * @param visible - 表示/非表示を上書きするマッチャー。
+ *                  `show` に一致するレイヤーは強制表示、`hide` に一致するレイヤーは強制非表示になる。
  * @returns フラット化された {@link PSDIndex} の配列
  */
 export async function walkPSD(

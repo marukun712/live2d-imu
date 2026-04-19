@@ -18,7 +18,13 @@ export interface KokoroGroup {
 	scaleY: number;
 }
 
+/** {@link GroupMatcher} に渡せる最小限のノード情報 */
 export type Matchable = { name: string; path: string[] };
+
+/**
+ * ノードがグループに属するかを判定する関数。
+ * {@link groupNodes} や {@link walkPSD} の絞り込み条件として使用する。
+ */
 export type GroupMatcher = (node: Matchable) => boolean;
 
 /** ノード群の AABB */

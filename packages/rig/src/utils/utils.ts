@@ -1,6 +1,7 @@
 import gsap from "gsap";
 import { CustomEase } from "gsap/CustomEase";
 
+/** UV -> 変形量のイージング関数を格納する辞書型 */
 type Curve = Record<string, (t: number) => number>;
 
 /**

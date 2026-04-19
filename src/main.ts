@@ -25,9 +25,9 @@ const POSE_TEMPLATES: Template = {
 		const depth = getCylinderWeight(u, -0.5);
 		const w = curve.body(fromTop) * depth;
 		return {
-			tx: -1e2,
+			tx: -100,
 			ty: 0,
-			rot: -0.1,
+			rot: -0.15,
 			w: w,
 		};
 	},
@@ -36,9 +36,9 @@ const POSE_TEMPLATES: Template = {
 		const depth = getCylinderWeight(u, 0.5);
 		const w = curve.body(fromTop) * depth;
 		return {
-			tx: 1e2,
+			tx: 100,
 			ty: 0,
-			rot: 0.1,
+			rot: 0.15,
 			w: w,
 		};
 	},
@@ -47,7 +47,7 @@ const POSE_TEMPLATES: Template = {
 		const w = curve.body(fromTop);
 		return {
 			tx: 0,
-			ty: -2e2,
+			ty: -200,
 			rot: 0,
 			w: w,
 		};
@@ -84,7 +84,7 @@ const POSE_TEMPLATES: Template = {
 		const swing = Math.sin(t * 0.1);
 		const w = curve.power1(v);
 		return {
-			tx: 3e2 * swing,
+			tx: 300 * swing,
 			ty: 10 * Math.abs(swing),
 			rot: 0,
 			w: w,
@@ -97,7 +97,7 @@ const HAIR_TEMPLATE: Template = {
 		const swing = Math.sin(t * 0.1);
 		const w = curve.hair(v);
 		return {
-			tx: 3e2 * swing,
+			tx: 300 * swing,
 			ty: 10 * Math.abs(swing),
 			rot: 0,
 			w: w,
@@ -241,16 +241,24 @@ setTimeout(talk, 2000);
 
 const params = { breathing: 0, x: 0.5, y: 0.5 };
 
-gsap
-	.timeline({ repeat: -1 })
-	.to(params, { breathing: 1, duration: 1.5, ease: "sine.inOut" })
-	.to(params, { breathing: 0, duration: 1.5, ease: "sine.inOut" });
+gsap.to(params, {
+	breathing: 1,
+	duration: 1.2,
+	ease: "sine.inOut",
+	repeat: -1,
+	yoyo: true,
+});
 
-gsap
-	.timeline({ repeat: -1, yoyo: true })
-	.to(params, { x: 0.8, y: 0.45, duration: 3, ease: "sine.inOut" })
-	.to(params, { x: 0.4, y: 0.55, duration: 3, ease: "sine.inOut" })
-	.to(params, { x: 0.2, y: 0.5, duration: 2, ease: "sine.inOut" });
+function randomMove() {
+	gsap.to(params, {
+		x: Math.random(),
+		y: Math.random(),
+		duration: 1.0 + Math.random() * 1.5,
+		ease: "sine.inOut",
+		onComplete: randomMove,
+	});
+}
+randomMove();
 
 app.ticker.add(() => {
 	rig.setPose([

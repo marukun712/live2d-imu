@@ -77,6 +77,11 @@ export class KokoroRig {
 	private readonly parent?: KokoroRig;
 	private time = 0;
 
+	/**
+	 * @param app     - ticker の登録先となる PIXI.Application
+	 * @param nodes   - 変形対象の {@link SpriteNode} 配列
+	 * @param options - {@link KokoroRigOptions}
+	 */
 	constructor(
 		app: PIXI.Application,
 		nodes: SpriteNode[],
