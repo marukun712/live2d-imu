@@ -1,11 +1,15 @@
 import {
+	byName,
+	byPath,
 	calcBounds,
 	curve,
 	drawCharacter,
 	getCylinderWeight,
 	getSpatialParams,
 	groupNodes,
+	KokoroFace,
 	KokoroRig,
+	pipe,
 	psdGroup,
 	setupCanvas,
 	type Template,
@@ -114,7 +118,11 @@ const viewport = new Viewport({
 app.stage.addChild(viewport);
 viewport.drag().pinch().wheel();
 
-const index = await walkPSD("/models/character.psd");
+const index = await walkPSD("/models/character.psd", {
+	show: byName("*ショート"),
+	hide: pipe(psdGroup("ヘアピン:flipx"), byPath(["!後髪", "*デフォルト"])),
+});
+
 const nodes = drawCharacter(index);
 
 const root = new Container();
@@ -149,21 +157,100 @@ const hairBackRig = new KokoroRig(app, hairBack.nodes, {
 	parent: rig,
 });
 
+const expression = new KokoroFace(nodes, ["*手前", "*閉じ", "*ん", "*あ半"]);
+
+expression.apply({
+	"*手前": true,
+	"*閉じ": false,
+	"*ん": true,
+	"*あ半": false,
+});
+
+function blink() {
+	const tl = gsap.timeline({
+		onComplete: () => setTimeout(blink, 2000 + Math.random() * 3000),
+	});
+	tl.to(
+		{},
+		{
+			duration: 0.07,
+			onComplete: () =>
+				expression.apply({
+					"*手前": false,
+					"*閉じ": true,
+					"*ん": true,
+					"*あ半": false,
+				}),
+		},
+	).to(
+		{},
+		{
+			duration: 0.1,
+			onComplete: () =>
+				expression.apply({
+					"*手前": true,
+					"*閉じ": false,
+					"*ん": true,
+					"*あ半": false,
+				}),
+		},
+	);
+}
+setTimeout(blink, 1000);
+
+function talk() {
+	const tl = gsap.timeline({
+		repeat: 5,
+		onComplete: () => {
+			expression.apply({
+				"*手前": true,
+				"*閉じ": false,
+				"*ん": true,
+				"*あ半": false,
+			});
+			setTimeout(talk, 3000 + Math.random() * 4000);
+		},
+	});
+	tl.to(
+		{},
+		{
+			duration: 0.1,
+			onComplete: () =>
+				expression.apply({
+					"*手前": true,
+					"*閉じ": false,
+					"*ん": false,
+					"*あ半": true,
+				}),
+		},
+	).to(
+		{},
+		{
+			duration: 0.1,
+			onComplete: () =>
+				expression.apply({
+					"*手前": true,
+					"*閉じ": false,
+					"*ん": true,
+					"*あ半": false,
+				}),
+		},
+	);
+}
+setTimeout(talk, 2000);
+
 const params = { breathing: 0, x: 0.5, y: 0.5 };
 
-gsap.to(params, {
-	breathing: 1,
-	duration: 1,
-	repeat: -1,
-	yoyo: true,
-	delay: 1.5,
-	ease: "sine.inOut",
-});
+gsap
+	.timeline({ repeat: -1 })
+	.to(params, { breathing: 1, duration: 1.5, ease: "sine.inOut" })
+	.to(params, { breathing: 0, duration: 1.5, ease: "sine.inOut" });
 
-window.addEventListener("pointermove", (e) => {
-	params.x = Math.max(0, Math.min(1, e.clientX / window.innerWidth));
-	params.y = Math.max(0, Math.min(1, e.clientY / window.innerHeight));
-});
+gsap
+	.timeline({ repeat: -1, yoyo: true })
+	.to(params, { x: 0.8, y: 0.45, duration: 3, ease: "sine.inOut" })
+	.to(params, { x: 0.4, y: 0.55, duration: 3, ease: "sine.inOut" })
+	.to(params, { x: 0.2, y: 0.5, duration: 2, ease: "sine.inOut" });
 
 app.ticker.add(() => {
 	rig.setPose([

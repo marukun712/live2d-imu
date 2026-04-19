@@ -1,5 +1,6 @@
 import { type Layer, readPsd } from "ag-psd";
 import * as PIXI from "pixi.js";
+import type { GroupMatcher } from "../rig/matcher";
 
 /** PSD レイヤー1枚分のフラットな情報 */
 export interface PSDIndex {
@@ -15,6 +16,8 @@ export interface PSDIndex {
 	y: number;
 	/** クリッピングマスク対象か */
 	clipping: boolean;
+	/** 隠れレイヤかどうか*/
+	hidden: boolean;
 }
 
 /** PIXI スプライトと対応するメタ情報 */
@@ -39,15 +42,26 @@ export interface SpriteNode {
  */
 export async function walkPSD(
 	url: string,
-	skip?: Set<string>,
+	visible?: {
+		show?: GroupMatcher;
+		hide?: GroupMatcher;
+	},
 ): Promise<PSDIndex[]> {
 	const res = await fetch(url);
 	const psd = readPsd(await res.arrayBuffer());
 	const result: PSDIndex[] = [];
 
 	function walk(layer: Layer, path: string[]) {
-		if (!layer.name || layer.hidden || skip?.has(layer.name)) return;
+		if (!layer.name) return;
 		const nextPath = [...path, layer.name.trim()];
+		const node = { name: layer.name.trim(), path: nextPath };
+
+		function resolveVisible(hidden: boolean): boolean {
+			if (visible?.show?.(node)) return false;
+			if (visible?.hide?.(node)) return true;
+			return hidden;
+		}
+
 		if (layer.children) {
 			for (const child of layer.children) walk(child, nextPath);
 		} else if (layer.canvas) {
@@ -58,6 +72,7 @@ export async function walkPSD(
 				x: layer.left ?? 0,
 				y: layer.top ?? 0,
 				clipping: layer.clipping ?? false,
+				hidden: resolveVisible(layer.hidden ?? false),
 			});
 		}
 	}
@@ -89,6 +104,7 @@ export function drawCharacter(layers: PSDIndex[]): SpriteNode[] {
 		sprite.y = layer.y;
 
 		const container = new PIXI.Container();
+		container.visible = !layer.hidden;
 		container.addChild(sprite);
 		nodes.push({ name: layer.name, path: layer.path, container, sprite });
 	}

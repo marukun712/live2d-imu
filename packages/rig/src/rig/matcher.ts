@@ -18,11 +18,8 @@ export interface KokoroGroup {
 	scaleY: number;
 }
 
-/**
- * ノードをグループに含めるかを判定する関数。
- * {@link byName}, {@link byPath}, {@link psdGroup}, {@link pipe} で生成できる。
- */
-export type GroupMatcher = (node: SpriteNode) => boolean;
+export type Matchable = { name: string; path: string[] };
+export type GroupMatcher = (node: Matchable) => boolean;
 
 /** ノード群の AABB */
 export interface Bounds {
