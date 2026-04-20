@@ -1,6 +1,4 @@
 import {
-	byName,
-	byPath,
 	calcBounds,
 	drawCharacter,
 	groupNodes,
@@ -31,8 +29,7 @@ app.stage.addChild(viewport);
 viewport.drag().pinch().wheel();
 
 const index = await walkPSD("/models/character.psd", {
-	show: byName("*ショート"),
-	hide: pipe(psdGroup("ヘアピン:flipx"), byPath(["!後髪", "*デフォルト"])),
+	hide: pipe(psdGroup("ヘアピン:flipx")),
 });
 
 const nodes = drawCharacter(index);
