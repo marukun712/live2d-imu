@@ -40,38 +40,6 @@ export interface Bounds {
 }
 
 /**
- * ノード群のメッシュ頂点から AABB を計算する。
- * Container の座標オフセットも加味したワールド空間での値を返す。
- *
- * @param nodes - 対象ノードの配列
- * @returns {@link Bounds}
- */
-export function calcBounds(nodes: SpriteNode[]): Bounds {
-	let minX = Infinity,
-		minY = Infinity,
-		maxX = -Infinity,
-		maxY = -Infinity;
-
-	for (const node of nodes) {
-		const data = node.sprite.geometry.getBuffer("aPosition")
-			.data as Float32Array;
-		const ox = node.sprite.x + node.container.x;
-		const oy = node.sprite.y + node.container.y;
-		const count = data.length / 2;
-		for (let i = 0; i < count; i++) {
-			const gx = data[i * 2] + ox;
-			const gy = data[i * 2 + 1] + oy;
-			if (gx < minX) minX = gx;
-			if (gx > maxX) maxX = gx;
-			if (gy < minY) minY = gy;
-			if (gy > maxY) maxY = gy;
-		}
-	}
-
-	return { minX, minY, w: maxX - minX, h: maxY - minY };
-}
-
-/**
  * {@link GroupMatcher} でフィルタしたノードを {@link KokoroGroup} にまとめる。
  * x / y / alpha などのプロパティを変更すると全ノードの Container に一括反映される。
  *

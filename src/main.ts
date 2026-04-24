@@ -1,6 +1,5 @@
 import {
 	byName,
-	calcBounds,
 	curve,
 	drawCharacter,
 	groupNodes,
@@ -22,16 +21,27 @@ export const HAIR_TEMPLATE: Template = {
 		const swing = Math.sin(t * 0.05);
 		const w = curve.body(v);
 		return {
-			tx: 600 * swing,
-			ty: 10 * Math.abs(swing),
+			tx: 40 * swing,
+			ty: 0,
 			w: w,
 		};
 	},
-	// 前髪と後ろ髪で移動量をずらして、視差をつくる
-	leftFront: (_, v) => ({ tx: -800, ty: 0, w: curve.body(v) }),
-	rightFront: (_, v) => ({ tx: 800, ty: 0, w: curve.body(v) }),
-	leftBack: (_, v) => ({ tx: 400, ty: 0, w: curve.body(v) }),
-	rightBack: (_, v) => ({ tx: -400, ty: 0, w: curve.body(v) }),
+	leftFront: () => ({ tx: -20, ty: 0, w: 1 }),
+	rightFront: () => ({ tx: 20, ty: 0, w: 1 }),
+	leftBack: () => ({ tx: 10, ty: 0, w: 1 }),
+	rightBack: () => ({ tx: -10, ty: 0, w: 1 }),
+};
+
+export const ARM_TEMPLATE: Template = {
+	swing: (_, v, t) => {
+		const swing = Math.sin(t * 0.05);
+		const w = curve.hair(v);
+		return {
+			tx: 30 * swing,
+			ty: 0,
+			w: w,
+		};
+	},
 };
 
 export const EYE_TEMPLATE: Template = {
@@ -81,30 +91,44 @@ const eyeR = groupNodes(
 	pipe(psdGroup("右　瞳"), psdGroup("右　ハイライト")),
 );
 
-const rigBounds = calcBounds(nodes);
+const skirt = groupNodes(nodes, psdGroup("スカート"));
+const ribbon = groupNodes(nodes, psdGroup("リボン"));
+const leftArm = groupNodes(nodes, psdGroup("左腕"));
+const rightArm = groupNodes(nodes, psdGroup("右腕"));
 
 const rig = new KokoroRig(app, nodes, {
 	poseTemplate: POSE_TEMPLATE,
-	bounds: rigBounds,
 });
 const hairFrontRig = new KokoroRig(app, hairFront.nodes, {
 	poseTemplate: HAIR_TEMPLATE,
-	bounds: rigBounds,
 	parent: rig,
 });
 const hairBackRig = new KokoroRig(app, hairBack.nodes, {
 	poseTemplate: HAIR_TEMPLATE,
-	bounds: rigBounds,
 	parent: rig,
 });
 const eyeLRig = new KokoroRig(app, eyeL.nodes, {
 	poseTemplate: EYE_TEMPLATE,
-	bounds: rigBounds,
 	parent: rig,
 });
 const eyeRRig = new KokoroRig(app, eyeR.nodes, {
 	poseTemplate: EYE_TEMPLATE,
-	bounds: rigBounds,
+	parent: rig,
+});
+const skirtRig = new KokoroRig(app, skirt.nodes, {
+	poseTemplate: HAIR_TEMPLATE,
+	parent: rig,
+});
+const ribbonRig = new KokoroRig(app, ribbon.nodes, {
+	poseTemplate: HAIR_TEMPLATE,
+	parent: rig,
+});
+const leftArmRig = new KokoroRig(app, leftArm.nodes, {
+	poseTemplate: ARM_TEMPLATE,
+	parent: rig,
+});
+const rightArmRig = new KokoroRig(app, rightArm.nodes, {
+	poseTemplate: ARM_TEMPLATE,
 	parent: rig,
 });
 
@@ -220,4 +244,8 @@ app.ticker.add(() => {
 		eyeRRig.lerpBlend("left", "right", params.x),
 		eyeRRig.lerpBlend("up", "down", params.y),
 	]);
+	skirtRig.setPose([HAIR_TEMPLATE.swing]);
+	ribbonRig.setPose([HAIR_TEMPLATE.swing]);
+	leftArmRig.setPose([ARM_TEMPLATE.swing]);
+	rightArmRig.setPose([ARM_TEMPLATE.swing]);
 });

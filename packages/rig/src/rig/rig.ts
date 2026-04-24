@@ -1,6 +1,5 @@
 import type * as PIXI from "pixi.js";
 import type { SpriteNode } from "../image/psd";
-import type { Bounds } from "./matcher";
 
 /** 1フレームの変形量 */
 export interface Transform {
@@ -31,8 +30,6 @@ export type Template = Record<string, PoseTransform>;
 export interface KokoroRigOptions {
 	/** 使用するポーズテンプレート */
 	poseTemplate: Template;
-	/** メッシュ変形の基準となる AABB */
-	bounds: Bounds;
 	/**
 	 * 親リグ。指定すると親の activeTransform も合成される。
 	 * 部位ごとに独立したリグを作りつつ、ルートリグの動きを継承させたい場合に使う。
@@ -60,15 +57,16 @@ export class KokoroRig {
 		end: number;
 	}> = [];
 
-	private readonly minX: number;
-	private readonly minY: number;
-	private readonly w: number;
-	private readonly h: number;
+	readonly minX: number;
+	readonly minY: number;
+	readonly w: number;
+	readonly h: number;
 
 	/** 現フレームに適用する変形関数リスト */
 	public activeTransform: PoseTransform[] = [];
 	private readonly parent?: KokoroRig;
 	private time = 0;
+	private scale = Math.random();
 
 	/**
 	 * @param app     - ticker の登録先となる PIXI.Application
@@ -80,7 +78,7 @@ export class KokoroRig {
 		nodes: SpriteNode[],
 		options: KokoroRigOptions,
 	) {
-		const { poseTemplate, bounds, parent } = options;
+		const { poseTemplate, parent } = options;
 		this.template = poseTemplate;
 		this.parent = parent;
 
@@ -114,6 +112,30 @@ export class KokoroRig {
 		}
 
 		this.verts.set(this.origVerts);
+
+		let minX = Infinity,
+			minY = Infinity,
+			maxX = -Infinity,
+			maxY = -Infinity;
+
+		for (const node of nodes) {
+			const data = node.sprite.geometry.getBuffer("aPosition")
+				.data as Float32Array;
+			const ox = node.sprite.x + node.container.x;
+			const oy = node.sprite.y + node.container.y;
+			const count = data.length / 2;
+			for (let i = 0; i < count; i++) {
+				const gx = data[i * 2] + ox;
+				const gy = data[i * 2 + 1] + oy;
+				if (gx < minX) minX = gx;
+				if (gx > maxX) maxX = gx;
+				if (gy < minY) minY = gy;
+				if (gy > maxY) maxY = gy;
+			}
+		}
+
+		const bounds = { minX, minY, w: maxX - minX, h: maxY - minY };
+
 		this.minX = bounds.minX;
 		this.minY = bounds.minY;
 		this.w = bounds.w;
@@ -121,7 +143,7 @@ export class KokoroRig {
 
 		app.ticker.add((t) => {
 			this.tick();
-			this.time += t.deltaTime;
+			this.time += t.deltaTime * this.scale;
 		});
 	}
 
@@ -172,23 +194,29 @@ export class KokoroRig {
 
 	/** 毎フレーム呼ばれる頂点変形処理 */
 	private tick(): void {
-		const fields = [
-			...(this.parent?.activeTransform ?? []),
-			...this.activeTransform,
-		];
 		const total = this.origVerts.length / 2;
 
 		for (let vi = 0; vi < total; vi++) {
 			const gx = this.globalOrigVerts[vi * 2];
 			const gy = this.globalOrigVerts[vi * 2 + 1];
 
-			// UV 座標に正規化
 			const u = (gx - this.minX) / this.w;
 			const v = (gy - this.minY) / this.h;
 
 			let totalTx = 0,
 				totalTy = 0;
-			for (const field of fields) {
+
+			if (this.parent) {
+				const pu = (gx - this.parent.minX) / this.parent.w;
+				const pv = (gy - this.parent.minY) / this.parent.h;
+				for (const field of this.parent.activeTransform) {
+					const tr = field(pu, pv, this.time);
+					totalTx += tr.tx * tr.w;
+					totalTy += tr.ty * tr.w;
+				}
+			}
+
+			for (const field of this.activeTransform) {
 				const tr = field(u, v, this.time);
 				totalTx += tr.tx * tr.w;
 				totalTy += tr.ty * tr.w;
