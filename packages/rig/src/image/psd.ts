@@ -54,8 +54,8 @@ export async function walkPSD(
 
 	function walk(layer: Layer, path: string[]) {
 		if (!layer.name) return;
-		const nextPath = [...path, layer.name.trim()];
-		const node = { name: layer.name.trim(), path: nextPath };
+		const nextPath = [...path, layer.name];
+		const node = { name: layer.name, path: nextPath };
 
 		function resolveVisible(hidden: boolean): boolean {
 			if (visible?.show?.(node)) return false;
@@ -67,7 +67,7 @@ export async function walkPSD(
 			for (const child of layer.children) walk(child, nextPath);
 		} else if (layer.canvas) {
 			result.push({
-				name: layer.name.trim(),
+				name: layer.name,
 				path: nextPath,
 				canvas: layer.canvas,
 				x: layer.left ?? 0,

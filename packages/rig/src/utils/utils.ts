@@ -2,29 +2,19 @@ import gsap from "gsap";
 import { CustomEase } from "gsap/CustomEase";
 
 /** UV -> 変形量のイージング関数を格納する辞書型 */
-type Curve = Record<string, (t: number) => number>;
+type Curve = Record<
+	"body" | "upperBody" | "head" | "hair" | "chest",
+	(t: number) => number
+>;
 
 /**
  * キャラクター各部位の変形量を UV 座標から決定するイージング関数群
  */
 export const curve: Curve = {
-	power1: gsap.parseEase("power1.in"),
-	power2: gsap.parseEase("power2.in"),
-	power3: gsap.parseEase("power3.in"),
-	power4: gsap.parseEase("power4.in"),
-	inOut: gsap.parseEase("sine.inOut"),
-	head: gsap.parseEase(
-		CustomEase.create(
-			"custom",
-			"M0,0 C0.188,0 0.774,-0.003 0.774,-0.003 0.774,-0.003 0.882,0.996 1,0.996",
-		),
-	),
-	body: gsap.parseEase(
-		CustomEase.create(
-			"custom",
-			"M0,0 C0.188,0 0.4,-0.003 0.4,-0.003 0.4,-0.003 0.882,0.996 1,0.996",
-		),
-	),
+	body: gsap.parseEase("power1.in"),
+	upperBody: gsap.parseEase("power2.in"),
+	head: gsap.parseEase("power3.in"),
+	hair: gsap.parseEase("power4.in"),
 	chest: gsap.parseEase(
 		CustomEase.create("custom", "M0,0 C0.35,0 0.55,1 0.6,1 0.7,1 0.8,0 1,0"),
 	),
