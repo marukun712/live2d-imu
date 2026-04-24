@@ -8,8 +8,6 @@ export interface Transform {
 	tx: number;
 	/** Y 方向の平行移動量 (ピクセル) */
 	ty: number;
-	/** 回転角 (ラジアン) */
-	rot: number;
 	/** この変形のウェイト(0~1) */
 	w: number;
 }
@@ -36,10 +34,6 @@ export interface KokoroRigOptions {
 	/** メッシュ変形の基準となる AABB */
 	bounds: Bounds;
 	/**
-	 * 変形倍率。デフォルトは `1.0`。
-	 */
-	power?: number;
-	/**
 	 * 親リグ。指定すると親の activeTransform も合成される。
 	 * 部位ごとに独立したリグを作りつつ、ルートリグの動きを継承させたい場合に使う。
 	 */
@@ -52,7 +46,6 @@ export interface KokoroRigOptions {
  */
 export class KokoroRig {
 	private readonly template: Template;
-	private readonly power: number;
 
 	/** ローカル座標の初期頂点バッファ */
 	private readonly origVerts: Float32Array;
@@ -87,9 +80,8 @@ export class KokoroRig {
 		nodes: SpriteNode[],
 		options: KokoroRigOptions,
 	) {
-		const { poseTemplate, bounds, power = 1.0, parent } = options;
+		const { poseTemplate, bounds, parent } = options;
 		this.template = poseTemplate;
-		this.power = power;
 		this.parent = parent;
 
 		// 全ノードの頂点数を集計してバッファを確保
@@ -150,7 +142,6 @@ export class KokoroRig {
 			return {
 				tx: ta.tx + (tb.tx - ta.tx) * t,
 				ty: ta.ty + (tb.ty - ta.ty) * t,
-				rot: ta.rot + (tb.rot - ta.rot) * t,
 				w: ta.w + (tb.w - ta.w) * t,
 			};
 		};
@@ -196,29 +187,15 @@ export class KokoroRig {
 			const v = (gy - this.minY) / this.h;
 
 			let totalTx = 0,
-				totalTy = 0,
-				totalRot = 0;
+				totalTy = 0;
 			for (const field of fields) {
 				const tr = field(u, v, this.time);
 				totalTx += tr.tx * tr.w;
 				totalTy += tr.ty * tr.w;
-				totalRot += tr.rot * tr.w;
 			}
 
-			const cos = Math.cos(totalRot);
-			const sin = Math.sin(totalRot);
-
-			// ピボットを胴体下端中央に設定
-			const pivotX = this.minX + this.w / 2;
-			const pivotY = this.minY + this.h;
-
-			const x = gx - pivotX;
-			const y = gy - pivotY;
-
-			this.verts[vi * 2] =
-				this.origVerts[vi * 2] + totalTx + (x * cos - y * sin) * this.power;
-			this.verts[vi * 2 + 1] =
-				this.origVerts[vi * 2 + 1] + totalTy + (x * sin + y * cos) * this.power;
+			this.verts[vi * 2] = this.origVerts[vi * 2] + totalTx;
+			this.verts[vi * 2 + 1] = this.origVerts[vi * 2 + 1] + totalTy;
 		}
 
 		this.applyVerts();

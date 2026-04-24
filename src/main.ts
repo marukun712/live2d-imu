@@ -22,24 +22,23 @@ export const HAIR_TEMPLATE: Template = {
 		const swing = Math.sin(t * 0.05);
 		const w = curve.body(v);
 		return {
-			tx: 300 * swing,
+			tx: 600 * swing,
 			ty: 10 * Math.abs(swing),
-			rot: 0,
 			w: w,
 		};
 	},
 	// 前髪と後ろ髪で移動量をずらして、視差をつくる
-	leftFront: (_, v) => ({ tx: -1000, ty: 0, rot: -0.08, w: curve.body(v) }),
-	rightFront: (_, v) => ({ tx: 1000, ty: 0, rot: 0.08, w: curve.body(v) }),
-	leftBack: (_, v) => ({ tx: 500, ty: 0, rot: -0.02, w: curve.body(v) }),
-	rightBack: (_, v) => ({ tx: -500, ty: 0, rot: 0.02, w: curve.body(v) }),
+	leftFront: (_, v) => ({ tx: -800, ty: 0, w: curve.body(v) }),
+	rightFront: (_, v) => ({ tx: 800, ty: 0, w: curve.body(v) }),
+	leftBack: (_, v) => ({ tx: 400, ty: 0, w: curve.body(v) }),
+	rightBack: (_, v) => ({ tx: -400, ty: 0, w: curve.body(v) }),
 };
 
 export const EYE_TEMPLATE: Template = {
-	left: () => ({ tx: -15, ty: 0, rot: -0, w: 1 }),
-	right: () => ({ tx: 15, ty: 0, rot: 0, w: 1 }),
-	up: () => ({ tx: 0, ty: 8, rot: -0, w: 1 }),
-	down: () => ({ tx: 0, ty: -8, rot: 0, w: 1 }),
+	left: () => ({ tx: -10, ty: 0, w: 1 }),
+	right: () => ({ tx: 10, ty: 0, w: 1 }),
+	up: () => ({ tx: 0, ty: 5, w: 1 }),
+	down: () => ({ tx: 0, ty: -5, w: 1 }),
 };
 
 const app = await setupCanvas(document.body);
@@ -204,7 +203,6 @@ app.ticker.add(() => {
 	rig.setPose([
 		rig.lerpBlend("left", "right", params.x),
 		rig.lerpBlend("up", "down", params.y),
-		rig.lerpBlend("normal", "breathing", params.breathing),
 	]);
 	hairFrontRig.setPose([
 		hairFrontRig.lerpBlend("leftFront", "rightFront", params.x),
