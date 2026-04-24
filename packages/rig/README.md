@@ -37,7 +37,7 @@ pipe(matcherA, matcherB)   // いずれかにマッチするレイヤー
 ### KokoroRig - メッシュ変形
 
 `KokoroRig` はキャラクターの骨格的な変形を担います。
-毎フレーム、各頂点を UV 座標 (u, v) に正規化してから `PoseTransform` 関数を呼び出し、平行移動 (tx, ty) と回転 (rot) を計算して頂点バッファに書き戻します。
+毎フレーム、各頂点を UV 座標 (u, v) に正規化してから `PoseTransform` 関数を呼び出し、平行移動 (tx, ty)を計算して頂点バッファに書き戻します。
 変形の強さは頂点の位置によって連続的に変化するため、ボーンを使わずにソフトボディ的な動きを実現できます。
 
 ```ts
@@ -58,7 +58,7 @@ app.ticker.add(() => {
 #### Template と PoseTransform
 
 `Template` はポーズ名をキーとする `PoseTransform` の辞書です。
-`PoseTransform` は `(u, v, t) => { tx, ty, rot, w }` のシグネチャを持ち、頂点ごとの変形量を返す関数です。
+`PoseTransform` は `(u, v, t) => { tx, ty, w }` のシグネチャを持ち、頂点ごとの変形量を返す関数です。
 `w` はウェイトで、複数のポーズが合成される際のブレンド比率になります。
 
 ```ts
@@ -66,7 +66,6 @@ const MY_TEMPLATE: Template = {
   left: (u, v) => ({
     tx: -100,
     ty: 0,
-    rot: -0.05,
     w: curve.body(1 - v), // 上半身ほど大きく動かす
   }),
 };
